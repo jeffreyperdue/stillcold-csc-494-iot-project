@@ -199,13 +199,13 @@ All artifacts related to StillCold are organized across dedicated repositories a
 ### Source Code
 
 **Project Repository:**  
-[Add link here - see format below]  
+[[StillCold](https://github.com/jeffreyperdue/stillcold-csc-494-iot-project)]  
 The primary repository containing source code, configuration files, and project-specific documentation for StillCold.
 
 ### Learning with AI
 
 **Learning with AI Repository:**  
-[Add link here - see format below]  
+[[Learning With AI](https://github.com/jeffreyperdue/csc-494-learning-with-ai)]  
 A separate repository containing documentation, notes, and reflections related to AI-assisted learning activities, including exploration of sensor behavior and BLE data design.
 
 ### Tests
