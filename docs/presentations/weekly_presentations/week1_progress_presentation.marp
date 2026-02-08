@@ -1,0 +1,115 @@
+---
+marp: true
+theme: default
+paginate: true
+backgroundColor: #fff
+style: |
+  section {
+    font-size: 28px;
+  }
+  h1, h2 {
+    color: #1a365d;
+  }
+  strong {
+    color: #2c5282;
+  }
+  section img {
+    max-height: 82vh;
+    max-width: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+---
+
+# **StillCold** — Week 1 Progress (2/2/26 - 2/8/26)
+## Environmental monitoring without opening the door
+
+*A brief update on where the project stands*
+
+---
+
+# What Week 1 Was About
+
+**Goal:** Build a solid hardware foundation before adding wireless features or apps.
+
+- Get the temperature sensor talking to the small computer that will read it.
+- Confirm that power and wiring are correct and safe.
+- Make sure the numbers we see on screen actually reflect real temperature — so we can trust them later.
+
+*No Bluetooth or mobile app yet; this week was about getting the basics right.*
+
+---
+
+# What Was Achieved
+
+By the end of Week 1:
+
+- **Hardware is wired and powered correctly** — The sensor and the sensing computer (Arduino Nano) are connected and working together.
+- **Temperature (and humidity) readings are reliable** — Values show up on the computer in a clear, readable format and match the real environment (e.g. room temperature around 21–22 °C).
+- **Power is stable** — No unexpected restarts or signs of electrical problems.
+- **Roles are clear** — The sensing part is in place; the part that will later send data over Bluetooth (ESP32-C6) is reserved for the next phase.
+
+---
+
+# Prototype in its current state
+
+![Hardware prototype on breadboard — Arduino Nano, temperature/humidity sensor, logic level shifter, and ESP32-C6 module](week1_hardware_connected.jpg)
+
+*The prototype as it looks now: wired, powered, and producing reliable temperature and humidity data.*
+
+---
+
+# One Important Lesson
+
+**Problem:** At first, the sensor reported impossible temperatures (over 110 °C in a normal room).
+
+**Cause:** The sensor runs on lower voltage (3.3 V) while the board driving it uses higher voltage (5 V). The data lines were connected directly, so the wrong voltage reached the sensor. The system *looked* like it was working, but the readings were wrong.
+
+**Fix:** A small “logic level shifter” was added between the board and the sensor so the voltage is translated correctly. After that, temperatures immediately showed realistic values.
+
+*Takeaway for stakeholders:* Hardware details like voltage matter; we caught and fixed this early so the rest of the project builds on trustworthy data.
+
+---
+
+# Assumptions We Validated
+
+- The temperature and humidity sensor works reliably when wired and powered correctly.
+- The Arduino Nano is a good choice for the sensing part of the system.
+- Showing data on the computer screen is enough for now to check that everything works.
+
+---
+
+# What We Corrected
+
+- **“The sensor is connected” is not enough** — We also had to ensure the voltage on the data lines was correct; otherwise the numbers can look valid but be wrong.
+- **Correct power to the sensor is not enough by itself** — The wires carrying data must use the right voltage levels too. The level shifter solves this.
+
+---
+
+# Ready for the Next Step
+
+**Current state:** The hardware prototype is fully wired, powered safely, and producing reliable temperature and humidity data that reflects the real environment. All connections are correct and the system is easy to observe and test.
+
+**Next (Week 2):** Data will start moving *between* parts of the system — from the sensor board toward the board that will eventually broadcast over Bluetooth — instead of only from the sensor to the screen.
+
+---
+
+# Summary
+
+| Area | Status |
+|------|--------|
+| Hardware setup | Complete and verified |
+| Sensor communication | Working; readings are trustworthy |
+| Power and safety | Stable; voltage issue identified and fixed |
+| Foundation for Week 2 | In place |
+
+*StillCold is on track for Sprint 1.*
+
+---
+
+# Thank you
+
+**StillCold** — *Environmental monitoring without opening the door*
+
+Questions?
