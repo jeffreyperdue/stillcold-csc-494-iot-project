@@ -14,6 +14,16 @@ By the end of Week 2, you should be able to confidently say:
 
 No BLE exposure yet. No Flutter yet. This week is about making the *internal* pipeline reliable and observable so that Week 3 can focus on exposing the same data over BLE.
 
+**Project decisions (this prototype):**
+
+| Decision | Choice |
+|----------|--------|
+| Inter-MCU link | UART (Serial) |
+| 5 V Nano ↔ 3.3 V ESP32-C6 | Bidirectional logic-level shifter (required; already on breadboard) |
+| Data format | Text, one line per reading: `T=<temp>,H=<humidity>\n` |
+| Sensor read failure | Retry 1–2×, then skip send + serial message (no sentinel) |
+| ESP32 observability | Print to USB serial when a new reading is received |
+
 ---
 
 ## 1. Inter-Component Communication Channel
@@ -22,15 +32,15 @@ No BLE exposure yet. No Flutter yet. This week is about making the *internal* pi
 
 **Context:** The sensing component (Arduino Nano) and the communication component (ESP32-C6) must exchange data. The README does not prescribe a protocol; choose one that is simple to implement and easy to debug.
 
-**Typical option:** UART (Serial) between Nano and ESP32-C6 — one TX/RX pair, common ground, and optionally logic-level alignment if needed (Nano 5 V vs ESP32-C6 3.3 V).
+**Chosen:** UART (Serial) between Nano and ESP32-C6 — one TX/RX pair, common ground. A **bidirectional logic-level shifter is required**: this project uses a 5 V Arduino Nano (ATmega328P clone); the ESP32-C6 is 3.3 V. A bidirectional level shifter (e.g. the one already on the prototype breadboard) shifts both directions for Nano TX↔ESP32 RX and Nano RX↔ESP32 TX.
 
 **Actions:**
 
-- Decide on the inter-MCU link (e.g. UART/Serial) and document the choice.
-- Wire the link between the Arduino Nano and the ESP32-C6 (TX → RX, RX → TX, GND shared). Use a logic level shifter if crossing 5 V / 3.3 V boundaries.
+- Document the choice: UART with bidirectional logic-level shifter.
+- Wire the link: Arduino Nano (TX, RX, GND) → **bidirectional logic-level shifter** → ESP32-C6 (RX, TX, GND). Connect Nano TX to shifter 5 V side, shifter 3.3 V side to ESP32 RX; ESP32 TX to shifter 3.3 V side, shifter 5 V side to Nano RX; GND common across all three.
 - Power both MCUs and confirm neither board is damaged and there are no unexpected resets.
 
-**Outcome checkpoint:** You can explain how the two boards are connected and why that connection is safe and correct.
+**Outcome checkpoint:** You can explain how the two boards are connected and why that connection is safe and correct (5 V vs 3.3 V and role of the level shifter).
 
 ---
 
@@ -38,10 +48,12 @@ No BLE exposure yet. No Flutter yet. This week is about making the *internal* pi
 
 **Context:** The sensing component will send readings to the communication component. A minimal, parseable format keeps the system understandable and testable.
 
+**Chosen:** Simple **text** format, one line per reading, newline-terminated. Example: `T=21.5,H=45.2\n`. Human-readable for serial debugging; easy to parse on the ESP32 (e.g. with `sscanf` or string split). One message per reading cycle.
+
 **Actions:**
 
-- Define a simple text or binary format for "latest temperature" (and optionally humidity) that the Nano will send and the ESP32-C6 will receive (e.g. `T=21.5,H=45.2` or a small fixed struct).
-- Document the format and any timing assumptions (e.g. one message per reading cycle).
+- Implement and document the format: `T=<temperature>,H=<humidity>` with newline terminator; one line per reading cycle.
+- Document timing: one message per reading cycle; "complete message" = buffer until newline.
 
 **Outcome checkpoint:** The format is written down and both sides can be implemented against the same spec.
 
@@ -65,9 +77,11 @@ No BLE exposure yet. No Flutter yet. This week is about making the *internal* pi
 
 ### 2.2 Error Handling and Observability
 
+**Chosen approach:** On sensor read failure, retry once or twice (with a short delay); if still failing, skip send and log a clear message to serial (e.g. "HTU21D read fail, skip"). Optionally maintain a failure counter. Do not send a sentinel value (keeps format and Week 3 BLE payload simple).
+
 **Actions:**
 
-- Handle sensor read failures gracefully (e.g. skip send, retry, or send a sentinel value) and make failures visible (e.g. serial message or counter).
+- Implement retry (1–2 attempts) on read failure, then skip send and print a distinct serial message (or increment a failure counter).
 - Ensure serial output remains readable so you can confirm "sensor read → format → send" without guessing.
 
 **Outcome checkpoint:** You can tell from logs/serial whether the last reading succeeded or failed and whether it was sent.
@@ -89,9 +103,11 @@ No BLE exposure yet. No Flutter yet. This week is about making the *internal* pi
 
 ### 3.2 Observability on the Communication Side
 
+**Chosen approach:** Print to USB serial **when a new reading is received** (not on a timer). This directly confirms that each message was received, parsed, and stored.
+
 **Actions:**
 
-- Expose the received data so you can verify correctness without BLE (e.g. print to USB serial when a new reading is received, or on a timer).
+- On each successfully received and parsed message, print the latest temperature (and humidity) to ESP32-C6 USB serial.
 - Confirm that values on the ESP32-C6 match what the Nano is sending and that they update when the environment changes.
 
 **Outcome checkpoint:** You can observe on the ESP32-C6 serial output that it is holding the same temperature values the Nano is sending; end-to-end data flow from sensor → Nano → ESP32-C6 is visible.
