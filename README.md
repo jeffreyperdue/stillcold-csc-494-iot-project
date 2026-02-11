@@ -72,16 +72,16 @@ Establish a reliable end-to-end data pipeline that measures internal temperature
 
 ### Sprint 1 Weekly Milestones
 
-- **Week 1**  
+- **Week 4**  
   Hardware setup and verification, including sensor communication and microcontroller integration.
 
-- **Week 2**  
+- **Week 5**  
   Reliable temperature data acquisition and transfer between system components.
 
-- **Week 3**  
+- **Week 6**  
   BLE service and characteristic implementation with readable temperature data.
 
-- **Week 4**  
+- **Week 7**  
   End-to-end system validation and initial Flutter application scaffolding.
 
 ### Sprint 2 Goal
