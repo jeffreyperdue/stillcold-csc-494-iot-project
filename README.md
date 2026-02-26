@@ -1,5 +1,17 @@
 # StillCold
 
+## Current status (end of Sprint 1)
+
+Sprint 1 is complete. The project currently has:
+
+- **Full end-to-end embedded pipeline:** HTU21D sensor → Arduino Nano → ESP32-C6 → BLE → external device.
+- **BLE service** on ESP32-C6 exposing temperature and humidity as readable characteristics.
+- **Flutter companion app MVP:** Discovers StillCold over BLE; connects and reads live temperature and humidity; displays readings in a dashboard; supports thresholds, quiet hours, and alert history.
+
+For Sprint 2 scope, week-by-week plan, and priorities, see **[Sprint 2 Plan](docs/project_context/sprint_2_plan.md)**.
+
+---
+
 ## 1. Hardware Components
 
 StillCold is built using the following hardware components. This list reflects the complete and current parts list for the project.
@@ -36,11 +48,11 @@ This problem provides a practical context for exploring sensor behavior in cold,
 
 StillCold is designed around a small set of clearly defined features and requirements, framed through a software-oriented lens while remaining appropriate for an embedded system. The focus is on observable behavior and system responsibilities rather than implementation details.
 
-### Sprint 1 Goal
+### Sprint 1 Goal (achieved)
 
 Establish a reliable end-to-end data pipeline that measures internal temperature and exposes it via BLE, demonstrating a functional embedded prototype.
 
-### Sprint 1 Features (Prototype / MVP)
+### Sprint 1 Features (Prototype / MVP) — delivered
 
 - **Internal temperature measurement**  
   The system measures temperature inside the monitored environment using an internal sensor. Humidity measurements are collected as supporting context but are not the primary focus.
@@ -52,7 +64,7 @@ Establish a reliable end-to-end data pipeline that measures internal temperature
   Temperature data flows from the sensor, through the system, and to the BLE interface without manual intervention.
 
 - **Initial mobile application groundwork**  
-  A simple Flutter application is designed to act as a BLE client and display retrieved temperature data. In Sprint 1, this work focuses on application structure and basic BLE connectivity exploration rather than full integration.
+  A Flutter companion app acts as a BLE client: it discovers StillCold devices, connects, and displays live temperature and humidity in a dashboard. Sprint 1 delivery includes thresholds, quiet hours, alert history, and local storage; further alignment with the SRS continues in Sprint 2.
 
 - **No external infrastructure dependency**  
   The system operates without reliance on Wi-Fi or cellular connectivity.
@@ -70,7 +82,7 @@ Establish a reliable end-to-end data pipeline that measures internal temperature
 - The system should prioritize correctness and reliability over optimization.
 - The system should be understandable and observable during development and testing.
 
-### Sprint 1 Weekly Milestones
+### Sprint 1 Weekly Milestones — completed
 
 - **Week 4**  
   Hardware setup and verification, including sensor communication and microcontroller integration.
@@ -82,11 +94,11 @@ Establish a reliable end-to-end data pipeline that measures internal temperature
   BLE service and characteristic implementation with readable temperature data.
 
 - **Week 7**  
-  End-to-end system validation and initial Flutter application scaffolding.
+  End-to-end system validation and Flutter companion app MVP (discovery, dashboard, thresholds, quiet hours, alert history).
 
 ### Sprint 2 Goal
 
-Refine system reliability and complete end-to-end communication between the embedded prototype and a mobile application via BLE.
+Refine StillCold into a reliable, tested system that behaves well in realistic cold environments and has a companion app aligned with the SRS, while cautiously exploring hardware consolidation. See **[Sprint 2 Plan](docs/project_context/sprint_2_plan.md)** for objectives, scope (Must/Should/Stretch), and week-by-week schedule.
 
 ### Sprint 2 Features (Refinement and Extension)
 
@@ -147,52 +159,7 @@ Sensor data flows from the sensing component to the communication component, whe
 
 This separation of responsibilities keeps the system modular and easier to reason about, while allowing individual components to be refined independently as the project evolves.
 
-## 6. Tests
-
-Testing in StillCold is focused on validating observable system behavior rather than exhaustive verification. The goal is to ensure that each stage of the data pipeline functions correctly and that the system behaves predictably under expected conditions.
-
-### Sprint 1 Testing Approach
-
-Sprint 1 testing focuses on verifying end-to-end functionality of the prototype.
-
-Planned tests include:
-
-- **Sensor data acquisition verification**  
-  Confirm that temperature readings are successfully retrieved from the internal sensor at regular intervals.
-
-- **Inter-component data transfer**  
-  Verify that temperature data is correctly transmitted from the sensing component to the communication component.
-
-- **BLE data exposure**  
-  Confirm that a nearby BLE-capable device can read the exposed characteristic and receive valid temperature data.
-
-- **Non-intrusive access validation**  
-  Verify that temperature data can be retrieved without opening or disturbing the monitored environment.
-
-Testing during Sprint 1 will primarily be manual and exploratory, using serial output, BLE scanning tools, and direct observation to confirm correct behavior.
-
-### Sprint 2 Testing Approach
-
-Sprint 2 testing builds on Sprint 1 by introducing more structure and consistency.
-
-Planned areas of focus include:
-
-- **Stability testing**  
-  Observe system behavior over longer periods to identify inconsistent readings or communication failures.
-
-- **Environmental variation testing**  
-  Evaluate how changes in conditions such as humidity or temperature transitions affect sensor behavior.
-
-- **Regression checks**  
-  Ensure that refinements made in Sprint 2 do not break previously working functionality.
-
-Sprint 2 testing may introduce lightweight test harnesses, repeatable test scenarios, or scripted checks where appropriate.
-
-### Testing Philosophy
-
-StillCold prioritizes tests that validate real system behavior over simulated correctness. Testing is treated as an evolving process, with plans expected to adapt as the system and understanding mature.
-
-## 7. Links to Code, Tests, Documentation, and Presentations
+## 6. Links to Code, Documentation, and Presentations
 
 All artifacts related to StillCold are organized across dedicated repositories and course resources.
 
@@ -208,14 +175,17 @@ The primary repository containing source code, configuration files, and project-
 [[Learning With AI](https://github.com/jeffreyperdue/csc-494-learning-with-ai)]  
 A separate repository containing documentation, notes, and reflections related to AI-assisted learning activities, including exploration of sensor behavior and BLE data design.
 
-### Tests
-
-Test-related notes, observations, and any supporting scripts are maintained alongside the relevant source code within the project repository. As testing becomes more structured, links to specific test artifacts may be added here.
-
 ### Documentation
 
-Project documentation, including the project outline and README files, is maintained within the project repository. Additional documentation may be introduced as the project evolves.
+Project documentation, including the project outline and README files, is maintained within the project repository. Key documents include:
+
+- **[Sprint 2 Plan](docs/project_context/sprint_2_plan.md)** — Current state, Sprint 2 goal, scope, and week-by-week plan.
+- **[Flutter app SRS](docs/project_context/flutter_app_srs.md)** — Software requirements for the companion app.
+- **[SRS status (Week 7)](docs/project_context/SRS_status_week7.md)** — Implementation status of the Flutter app relative to the SRS.
+
+Additional documentation may be introduced as the project evolves.
 
 ### Presentations
 
-Project presentations, including the Project Proposal Presentation (PPP), are linked through course platforms and may be referenced here as they are finalized.
+- **Project Preparation Presentation (PPP)** — Course platforms as finalized.
+- **Sprint 1 Presentation (s1p)** — [docs/presentations/s1p/s1p.md](docs/presentations/s1p/s1p.md) — Summary of Sprint 1 progress (weeks 4–7).
