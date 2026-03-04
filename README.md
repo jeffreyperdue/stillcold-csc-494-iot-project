@@ -1,6 +1,6 @@
 # StillCold
 
-## Current status (end of Sprint 1)
+## Current status 3.4.26
 
 Sprint 1 is complete. The project currently has:
 
