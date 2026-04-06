@@ -1,0 +1,41 @@
+Scenario 2 (Door Open-Closed):
+
+3.26.26
+
+DC - Door Closed
+DO - Door Open
+
+Part A
+7:02:00 PM DC 38.1
+7:02:35 PM DO
+7:03:10 PM DC
+7:05:00 PM 38.8
+7:07:00 PM 39.0
+7:09:00 PM 38.8
+7:11:00 PM 38.6
+7:13:00 PM 38.3
+7:15:00 PM 38.1
+
+Part B
+7:22:00 PM DC 38.2
+7:23:00 PM DO
+7:25:00 PM 40.1
+7:26:00 PM DC
+7:27:00 PM 40.8
+7:29:00 PM 40.5
+7:31:00 PM 40.0
+7:33:00 PM 39.7
+7:35:00 PM 39.4
+7:37:00 PM 39.2
+7:39:00 PM 39.0
+7:41:00 PM 38.8
+7:43:00 PM 38.7
+7:45:00 PM 38.5
+7:47:00 PM 38.3
+7:49:00 PM 38.2
+
+
+Scenario 3 (Power Cycle):
+
+Across 10 tests, the system averaged 10.8 seconds from power 
+being re-established to a valid reading in the companion app.
