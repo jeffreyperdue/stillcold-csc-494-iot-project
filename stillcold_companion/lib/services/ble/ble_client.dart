@@ -33,6 +33,10 @@ class BleClient {
 
   final FlutterReactiveBle _ble;
 
+  BleStatus get bleStatus => _ble.status;
+
+  Stream<BleStatus> get statusStream => _ble.statusStream;
+
   Stream<List<StillColdDevice>> scanForStillColdDevices() {
     return _ble
         .scanForDevices(

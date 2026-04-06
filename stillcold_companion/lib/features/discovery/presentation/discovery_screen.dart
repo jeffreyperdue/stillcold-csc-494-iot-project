@@ -141,7 +141,7 @@ class DiscoveryScreen extends ConsumerWidget {
                             ref
                                 .read(selectedDeviceIdProvider.notifier)
                                 .state = device.id;
-                            context.go(
+                            context.push(
                               DashboardScreen.routeForDevice(device.id),
                             );
                           },

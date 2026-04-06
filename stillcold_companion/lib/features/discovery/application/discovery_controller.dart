@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter_reactive_ble/flutter_reactive_ble.dart'
+    show BleStatus;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -39,13 +41,55 @@ final discoveryControllerProvider =
 });
 
 class DiscoveryController extends StateNotifier<DiscoveryState> {
-  DiscoveryController(this._bleClient) : super(const DiscoveryState());
+  DiscoveryController(this._bleClient) : super(const DiscoveryState()) {
+    _btStatusSub = _bleClient.statusStream.listen((status) {
+      if (!mounted) return;
+      if (status == BleStatus.poweredOff ||
+          status == BleStatus.locationServicesDisabled) {
+        _scanSub?.cancel();
+        _scanSub = null;
+        state = state.copyWith(
+          isScanning: false,
+          errorMessage:
+              'Bluetooth is turned off. Please enable it in your device settings and try again.',
+        );
+      } else if (status == BleStatus.ready) {
+        state = state.copyWith(errorMessage: null);
+      }
+    });
+  }
 
   final BleClient _bleClient;
   StreamSubscription<List<StillColdDevice>>? _scanSub;
+  StreamSubscription<BleStatus>? _btStatusSub;
 
   Future<void> startScan() async {
     if (state.isScanning) return;
+
+    final btStatus = _bleClient.bleStatus;
+    if (btStatus == BleStatus.poweredOff) {
+      state = state.copyWith(
+        isScanning: false,
+        errorMessage:
+            'Bluetooth is turned off. Please enable it in your device settings and try again.',
+      );
+      return;
+    }
+    if (btStatus == BleStatus.unauthorized) {
+      state = state.copyWith(
+        isScanning: false,
+        errorMessage:
+            'Bluetooth access is not authorized. Please grant Bluetooth permission to this app in Settings.',
+      );
+      return;
+    }
+    if (btStatus == BleStatus.unsupported) {
+      state = state.copyWith(
+        isScanning: false,
+        errorMessage: 'This device does not support Bluetooth Low Energy.',
+      );
+      return;
+    }
 
     final hasPermissions = await _ensurePermissions();
     if (!hasPermissions) {
@@ -76,9 +120,15 @@ class DiscoveryController extends StateNotifier<DiscoveryState> {
         state = state.copyWith(devices: merged.values.toList());
       },
       onError: (error, _) {
+        final msg = error.toString().toLowerCase();
+        final friendlyMessage = msg.contains('bluetooth disabled') ||
+                msg.contains('bluetooth is not available') ||
+                msg.contains('bluetooth is off')
+            ? 'Bluetooth is turned off. Please enable it in your device settings and try again.'
+            : 'Scan failed: $error';
         state = state.copyWith(
           isScanning: false,
-          errorMessage: 'Scan failed: $error',
+          errorMessage: friendlyMessage,
         );
       },
       onDone: () {
@@ -96,6 +146,7 @@ class DiscoveryController extends StateNotifier<DiscoveryState> {
   @override
   void dispose() {
     _scanSub?.cancel();
+    _btStatusSub?.cancel();
     super.dispose();
   }
 

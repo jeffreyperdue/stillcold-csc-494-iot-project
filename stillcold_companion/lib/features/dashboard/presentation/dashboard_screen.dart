@@ -23,6 +23,8 @@ class DashboardScreen extends ConsumerWidget {
         ref.read(dashboardControllerProvider(deviceId).notifier);
     final settingsAsync = ref.watch(settingsFutureProvider);
 
+    final isConnected = state.connectionStatus == ConnectionStatus.connected;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('StillCold'),
@@ -32,185 +34,236 @@ class DashboardScreen extends ConsumerWidget {
             onPressed: () => context.push('/settings'),
             icon: const Icon(Icons.settings_outlined),
           ),
+          IconButton(
+            tooltip: 'Disconnect',
+            icon: const Icon(Icons.link_off),
+            onPressed: () async {
+              final confirmed = await showDialog<bool>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Disconnect?'),
+                  content: const Text(
+                    'Are you sure you want to disconnect from this device?',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, false),
+                      child: const Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(ctx, true),
+                      child: const Text('Disconnect'),
+                    ),
+                  ],
+                ),
+              );
+              if (confirmed == true) {
+                await controller.disconnect();
+                if (context.mounted) context.go('/discovery');
+              }
+            },
+          ),
         ],
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'StillCold device',
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const StatusChip(status: ConnectionStatus.connected),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Last updated',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        state.reading == null
-                            ? 'Not yet'
-                            : _formatTimeAgo(state.reading!.timestamp),
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              if (state.reading == null && state.errorMessage != null)
-                Expanded(
-                  child: EmptyState(
-                    icon: Icons.thermostat,
-                    title: 'No reading yet',
-                    message: state.errorMessage!,
-                    primaryActionLabel: 'Refresh',
-                    onPrimaryAction: () => controller.refresh(),
-                  ),
-                )
-              else ...[
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Row(
+        child: Column(
+          children: [
+            if (state.connectionLost) _ConnectionLostBanner(
+              onReconnect: () => controller.reconnect(),
+              onGoToDiscovery: () => context.go('/discovery'),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Temperature',
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: Colors.grey.shade700,
+                                'StillCold device',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    _formatTemperature(
-                                      state.reading?.temperatureC,
-                                      settingsAsync,
-                                    ),
-                                    style: theme.textTheme.displayMedium
-                                        ?.copyWith(
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Padding(
-                                    padding:
-                                        const EdgeInsets.only(bottom: 8.0),
-                                    child: Text(
-                                      _temperatureUnit(settingsAsync),
+                              const SizedBox(height: 4),
+                              StatusChip(status: state.connectionStatus),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'Last updated',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              state.reading == null
+                                  ? 'Not yet'
+                                  : _formatTimeAgo(state.reading!.timestamp),
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    if (state.reading == null && state.errorMessage != null)
+                      Expanded(
+                        child: EmptyState(
+                          icon: Icons.thermostat,
+                          title: 'No reading yet',
+                          message: state.errorMessage!,
+                          primaryActionLabel: isConnected ? 'Refresh' : null,
+                          onPrimaryAction:
+                              isConnected ? () => controller.refresh() : null,
+                        ),
+                      )
+                    else ...[
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Temperature',
                                       style:
-                                          theme.textTheme.titleMedium?.copyWith(
+                                          theme.textTheme.bodyMedium?.copyWith(
                                         color: Colors.grey.shade700,
                                       ),
                                     ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          _formatTemperature(
+                                            state.reading?.temperatureC,
+                                            settingsAsync,
+                                          ),
+                                          style: theme.textTheme.displayMedium
+                                              ?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Padding(
+                                          padding: const EdgeInsets.only(
+                                              bottom: 8.0),
+                                          child: Text(
+                                            _temperatureUnit(settingsAsync),
+                                            style: theme.textTheme.titleMedium
+                                                ?.copyWith(
+                                              color: Colors.grey.shade700,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 24),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Humidity',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: Colors.grey.shade700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Row(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        state.reading?.humidityPercent
+                                                ?.toStringAsFixed(0) ??
+                                            '--',
+                                        style: theme.textTheme.headlineMedium
+                                            ?.copyWith(
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Padding(
+                                        padding:
+                                            const EdgeInsets.only(bottom: 4.0),
+                                        child: Text(
+                                          '%',
+                                          style: theme.textTheme.titleMedium
+                                              ?.copyWith(
+                                            color: Colors.grey.shade700,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 24),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Humidity',
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  state.reading?.humidityPercent
-                                          ?.toStringAsFixed(0) ??
-                                      '--',
-                                  style: theme.textTheme.headlineMedium
-                                      ?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Padding(
-                                  padding:
-                                      const EdgeInsets.only(bottom: 4.0),
-                                  child: Text(
-                                    '%',
-                                    style:
-                                        theme.textTheme.titleMedium?.copyWith(
-                                      color: Colors.grey.shade700,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Text(
-                  'Trends (mock)',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        'Trend chart placeholder\n(24h / 7d)',
-                        textAlign: TextAlign.center,
                       ),
-                    ),
-                  ),
+                      const SizedBox(height: 24),
+                      Text(
+                        'Trends (mock)',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: Container(
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Trend chart placeholder\n(24h / 7d)',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-              ],
-            ],
-          ),
+              ),
+            ),
+          ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: state.isLoading ? null : () => controller.refresh(),
-        icon: const Icon(Icons.refresh),
-        label: Text(state.isLoading ? 'Refreshing...' : 'Refresh'),
+      floatingActionButton: Opacity(
+        opacity: (state.isLoading || !isConnected) ? 0.4 : 1.0,
+        child: FloatingActionButton.extended(
+          onPressed: (state.isLoading || !isConnected)
+              ? null
+              : () => controller.refresh(),
+          icon: const Icon(Icons.refresh),
+          label: Text(
+            state.isLoading
+                ? 'Refreshing...'
+                : (!isConnected ? 'Not connected' : 'Refresh'),
+          ),
+        ),
       ),
     );
   }
@@ -245,4 +298,55 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
+class _ConnectionLostBanner extends StatelessWidget {
+  const _ConnectionLostBanner({
+    required this.onReconnect,
+    required this.onGoToDiscovery,
+  });
 
+  final VoidCallback onReconnect;
+  final VoidCallback onGoToDiscovery;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      color: theme.colorScheme.errorContainer,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      child: Row(
+        children: [
+          Icon(
+            Icons.wifi_off,
+            size: 20,
+            color: theme.colorScheme.onErrorContainer,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Connection lost',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onErrorContainer,
+              ),
+            ),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.onErrorContainer,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            onPressed: onReconnect,
+            child: const Text('Reconnect'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.onErrorContainer,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+            ),
+            onPressed: onGoToDiscovery,
+            child: const Text('Scan'),
+          ),
+        ],
+      ),
+    );
+  }
+}

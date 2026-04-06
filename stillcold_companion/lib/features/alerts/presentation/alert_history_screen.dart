@@ -68,7 +68,10 @@ class AlertHistoryScreen extends ConsumerWidget {
                     ),
                   ),
                   title: Text('$direction threshold crossed'),
-                  subtitle: Text('$valueText • $when'),
+                  subtitle: Text(
+                    '$valueText  •  $when\n${_formatAbsolute(alert.timestamp)}',
+                  ),
+                  isThreeLine: true,
                 );
               },
               separatorBuilder: (_, __) => const Divider(height: 1),
@@ -81,12 +84,22 @@ class AlertHistoryScreen extends ConsumerWidget {
   }
 
   String _formatTimestamp(DateTime ts) {
-    final now = DateTime.now();
-    final diff = now.difference(ts);
+    final diff = DateTime.now().difference(ts);
     if (diff.inMinutes < 1) return 'Just now';
     if (diff.inHours < 1) return '${diff.inMinutes} min ago';
     if (diff.inDays < 1) return '${diff.inHours} h ago';
-    return '${ts.year}-${_two(ts.month)}-${_two(ts.day)} ${_two(ts.hour)}:${_two(ts.minute)}';
+    return '${diff.inDays} d ago';
+  }
+
+  String _formatAbsolute(DateTime ts) {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+    ];
+    final month = months[ts.month - 1];
+    final hour = ts.hour % 12 == 0 ? 12 : ts.hour % 12;
+    final amPm = ts.hour < 12 ? 'AM' : 'PM';
+    return '$month ${ts.day} at $hour:${_two(ts.minute)} $amPm';
   }
 
   String _two(int v) => v.toString().padLeft(2, '0');
