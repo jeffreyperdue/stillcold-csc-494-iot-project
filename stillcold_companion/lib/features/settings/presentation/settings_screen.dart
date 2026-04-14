@@ -23,10 +23,20 @@ class SettingsScreen extends ConsumerWidget {
       body: SafeArea(
         child: asyncSettings.when(
           loading: () => const Center(child: CircularProgressIndicator()),
-          error:
-              (error, _) =>
-                  Center(child: Text('Failed to load settings: $error')),
+          error: (error, _) =>
+              Center(child: Text('Failed to load settings: $error')),
           data: (settings) {
+            final useF = settings.useFahrenheit;
+
+            // Build the threshold subtitle in the active unit.
+            final lowDisplay = useF
+                ? _cToF(settings.lowThresholdC).toStringAsFixed(1)
+                : settings.lowThresholdC.toStringAsFixed(1);
+            final highDisplay = useF
+                ? _cToF(settings.highThresholdC).toStringAsFixed(1)
+                : settings.highThresholdC.toStringAsFixed(1);
+            final unitLabel = useF ? '°F' : '°C';
+
             return ListView(
               padding: const EdgeInsets.all(24),
               children: [
@@ -48,6 +58,20 @@ class SettingsScreen extends ConsumerWidget {
                           await ref
                               .read(settingsRepositoryProvider)
                               .update(useFahrenheit: value);
+                          ref.invalidate(settingsFutureProvider);
+                        },
+                      ),
+                      const Divider(height: 1),
+                      SwitchListTile(
+                        title: const Text('Auto-connect'),
+                        subtitle: const Text(
+                          'Automatically connect to your last device when it appears during a scan.',
+                        ),
+                        value: settings.autoConnectEnabled,
+                        onChanged: (value) async {
+                          await ref
+                              .read(settingsRepositoryProvider)
+                              .update(autoConnectEnabled: value);
                           ref.invalidate(settingsFutureProvider);
                         },
                       ),
@@ -107,36 +131,56 @@ class SettingsScreen extends ConsumerWidget {
                       ListTile(
                         title: const Text('Temperature thresholds'),
                         subtitle: Text(
-                          'Low: ${settings.lowThresholdC.toStringAsFixed(1)} °C, '
-                          'High: ${settings.highThresholdC.toStringAsFixed(1)} °C',
+                          'Low: $lowDisplay $unitLabel, High: $highDisplay $unitLabel',
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () async {
+                          // Display values in the user's chosen unit.
+                          final initLow = useF
+                              ? _cToF(settings.lowThresholdC)
+                              : settings.lowThresholdC;
+                          final initHigh = useF
+                              ? _cToF(settings.highThresholdC)
+                              : settings.highThresholdC;
                           final lowController = TextEditingController(
-                            text: settings.lowThresholdC.toStringAsFixed(1),
+                            text: initLow.toStringAsFixed(1),
                           );
                           final highController = TextEditingController(
-                            text: settings.highThresholdC.toStringAsFixed(1),
+                            text: initHigh.toStringAsFixed(1),
                           );
 
                           final result = await showDialog<bool>(
                             context: context,
-                            builder: (context) {
+                            builder: (dialogCtx) {
                               return AlertDialog(
-                                title:
-                                    const Text('Temperature thresholds (°C)'),
+                                title: Text(
+                                  'Temperature thresholds ($unitLabel)',
+                                ),
                                 content: Column(
                                   mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    // FR-4.3: Rationale text in the dialog.
+                                    Text(
+                                      'Recommended: 0–4 °C (32–39 °F) for refrigeration; '
+                                      'below 0 °C (32 °F) for freezers.',
+                                      style: Theme.of(dialogCtx)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: Colors.grey.shade600,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 12),
                                     TextField(
                                       controller: lowController,
                                       keyboardType:
                                           const TextInputType.numberWithOptions(
-                                        signed: false,
+                                        signed: true,
                                         decimal: true,
                                       ),
-                                      decoration: const InputDecoration(
-                                        labelText: 'Low threshold (°C)',
+                                      decoration: InputDecoration(
+                                        labelText: 'Low threshold ($unitLabel)',
                                       ),
                                     ),
                                     const SizedBox(height: 12),
@@ -144,11 +188,11 @@ class SettingsScreen extends ConsumerWidget {
                                       controller: highController,
                                       keyboardType:
                                           const TextInputType.numberWithOptions(
-                                        signed: false,
+                                        signed: true,
                                         decimal: true,
                                       ),
-                                      decoration: const InputDecoration(
-                                        labelText: 'High threshold (°C)',
+                                      decoration: InputDecoration(
+                                        labelText: 'High threshold ($unitLabel)',
                                       ),
                                     ),
                                   ],
@@ -156,12 +200,12 @@ class SettingsScreen extends ConsumerWidget {
                                 actions: [
                                   TextButton(
                                     onPressed: () =>
-                                        Navigator.of(context).pop(false),
+                                        Navigator.of(dialogCtx).pop(false),
                                     child: const Text('Cancel'),
                                   ),
                                   TextButton(
                                     onPressed: () =>
-                                        Navigator.of(context).pop(true),
+                                        Navigator.of(dialogCtx).pop(true),
                                     child: const Text('Save'),
                                   ),
                                 ],
@@ -170,24 +214,33 @@ class SettingsScreen extends ConsumerWidget {
                           );
 
                           if (result == true) {
-                            final low = double.tryParse(lowController.text);
-                            final high = double.tryParse(highController.text);
-                            if (low != null && high != null) {
+                            final lowParsed =
+                                double.tryParse(lowController.text);
+                            final highParsed =
+                                double.tryParse(highController.text);
+                            if (lowParsed != null && highParsed != null) {
+                              // Convert back to °C if the user entered °F.
+                              final lowC =
+                                  useF ? _fToC(lowParsed) : lowParsed;
+                              final highC =
+                                  useF ? _fToC(highParsed) : highParsed;
                               await ref
                                   .read(settingsRepositoryProvider)
                                   .update(
-                                    lowThresholdC: low,
-                                    highThresholdC: high,
+                                    lowThresholdC: lowC,
+                                    highThresholdC: highC,
                                   );
                               ref.invalidate(settingsFutureProvider);
                             } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text(
-                                    'Please enter valid numeric thresholds.',
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Please enter valid numeric thresholds.',
+                                    ),
                                   ),
-                                ),
-                              );
+                                );
+                              }
                             }
                           }
                         },
@@ -215,8 +268,7 @@ class SettingsScreen extends ConsumerWidget {
                           );
                           if (end == null) return;
 
-                          final startMinutes =
-                              start.hour * 60 + start.minute;
+                          final startMinutes = start.hour * 60 + start.minute;
                           final endMinutes = end.hour * 60 + end.minute;
 
                           await ref.read(settingsRepositoryProvider).update(
@@ -243,7 +295,7 @@ class SettingsScreen extends ConsumerWidget {
                       ListTile(
                         title: const Text('Device labels'),
                         subtitle: const Text(
-                          'Assign names like “Kitchen fridge” (manage from discovery).',
+                          'Assign names like "Kitchen fridge" (manage from discovery).',
                         ),
                         trailing: const Icon(Icons.chevron_right),
                         onTap: () => context.push('/discovery'),
@@ -275,10 +327,12 @@ class SettingsScreen extends ConsumerWidget {
   }
 }
 
+double _cToF(double c) => c * 9 / 5 + 32;
+double _fToC(double f) => (f - 32) * 5 / 9;
+
 String _formatMinutesForDisplay(int minutes) {
   final h = minutes ~/ 60;
   final m = minutes % 60;
   final two = (int v) => v.toString().padLeft(2, '0');
   return '${two(h)}:${two(m)}';
 }
-

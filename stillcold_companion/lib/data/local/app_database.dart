@@ -25,6 +25,8 @@ class Settings extends Table {
   IntColumn get quietHoursStartMinutes => integer().nullable()();
   IntColumn get quietHoursEndMinutes => integer().nullable()();
   TextColumn get lastConnectedDeviceId => text().nullable()();
+  BoolColumn get autoConnectEnabled =>
+      boolean().withDefault(const Constant(true))();
 }
 
 class AlertEvents extends Table {
@@ -54,7 +56,28 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 3;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          if (from <= 1) {
+            // v1 → v2: recreate data tables that may have stale or missing columns.
+            // The 'settings' table is intentionally left intact to preserve user data.
+            await m.drop(readings);
+            await m.drop(alertEvents);
+            await m.drop(deviceLabels);
+            await m.createTable(readings);
+            await m.createTable(alertEvents);
+            await m.createTable(deviceLabels);
+          }
+          if (from <= 2) {
+            // v2 → v3: add autoConnectEnabled column to settings.
+            await m.addColumn(settings, settings.autoConnectEnabled);
+          }
+        },
+      );
 
   Future<int> insertReading(ReadingsCompanion entry) =>
       into(readings).insert(entry);

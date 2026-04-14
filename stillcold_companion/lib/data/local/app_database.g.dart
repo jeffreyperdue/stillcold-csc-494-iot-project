@@ -473,6 +473,20 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _autoConnectEnabledMeta =
+      const VerificationMeta('autoConnectEnabled');
+  @override
+  late final GeneratedColumn<bool> autoConnectEnabled = GeneratedColumn<bool>(
+    'auto_connect_enabled',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("auto_connect_enabled" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -483,6 +497,7 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
     quietHoursStartMinutes,
     quietHoursEndMinutes,
     lastConnectedDeviceId,
+    autoConnectEnabled,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -562,6 +577,15 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         ),
       );
     }
+    if (data.containsKey('auto_connect_enabled')) {
+      context.handle(
+        _autoConnectEnabledMeta,
+        autoConnectEnabled.isAcceptableOrUnknown(
+          data['auto_connect_enabled']!,
+          _autoConnectEnabledMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -608,6 +632,11 @@ class $SettingsTable extends Settings with TableInfo<$SettingsTable, Setting> {
         DriftSqlType.string,
         data['${effectivePrefix}last_connected_device_id'],
       ),
+      autoConnectEnabled:
+          attachedDatabase.typeMapping.read(
+            DriftSqlType.bool,
+            data['${effectivePrefix}auto_connect_enabled'],
+          )!,
     );
   }
 
@@ -626,6 +655,7 @@ class Setting extends DataClass implements Insertable<Setting> {
   final int? quietHoursStartMinutes;
   final int? quietHoursEndMinutes;
   final String? lastConnectedDeviceId;
+  final bool autoConnectEnabled;
   const Setting({
     required this.id,
     required this.useFahrenheit,
@@ -635,6 +665,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     this.quietHoursStartMinutes,
     this.quietHoursEndMinutes,
     this.lastConnectedDeviceId,
+    required this.autoConnectEnabled,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -653,6 +684,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     if (!nullToAbsent || lastConnectedDeviceId != null) {
       map['last_connected_device_id'] = Variable<String>(lastConnectedDeviceId);
     }
+    map['auto_connect_enabled'] = Variable<bool>(autoConnectEnabled);
     return map;
   }
 
@@ -675,6 +707,7 @@ class Setting extends DataClass implements Insertable<Setting> {
           lastConnectedDeviceId == null && nullToAbsent
               ? const Value.absent()
               : Value(lastConnectedDeviceId),
+      autoConnectEnabled: Value(autoConnectEnabled),
     );
   }
 
@@ -700,6 +733,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       lastConnectedDeviceId: serializer.fromJson<String?>(
         json['lastConnectedDeviceId'],
       ),
+      autoConnectEnabled: serializer.fromJson<bool>(json['autoConnectEnabled']),
     );
   }
   @override
@@ -716,6 +750,7 @@ class Setting extends DataClass implements Insertable<Setting> {
       'lastConnectedDeviceId': serializer.toJson<String?>(
         lastConnectedDeviceId,
       ),
+      'autoConnectEnabled': serializer.toJson<bool>(autoConnectEnabled),
     };
   }
 
@@ -728,6 +763,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     Value<int?> quietHoursStartMinutes = const Value.absent(),
     Value<int?> quietHoursEndMinutes = const Value.absent(),
     Value<String?> lastConnectedDeviceId = const Value.absent(),
+    bool? autoConnectEnabled,
   }) => Setting(
     id: id ?? this.id,
     useFahrenheit: useFahrenheit ?? this.useFahrenheit,
@@ -747,6 +783,7 @@ class Setting extends DataClass implements Insertable<Setting> {
         lastConnectedDeviceId.present
             ? lastConnectedDeviceId.value
             : this.lastConnectedDeviceId,
+    autoConnectEnabled: autoConnectEnabled ?? this.autoConnectEnabled,
   );
   Setting copyWithCompanion(SettingsCompanion data) {
     return Setting(
@@ -779,6 +816,10 @@ class Setting extends DataClass implements Insertable<Setting> {
           data.lastConnectedDeviceId.present
               ? data.lastConnectedDeviceId.value
               : this.lastConnectedDeviceId,
+      autoConnectEnabled:
+          data.autoConnectEnabled.present
+              ? data.autoConnectEnabled.value
+              : this.autoConnectEnabled,
     );
   }
 
@@ -792,7 +833,8 @@ class Setting extends DataClass implements Insertable<Setting> {
           ..write('pollingIntervalSeconds: $pollingIntervalSeconds, ')
           ..write('quietHoursStartMinutes: $quietHoursStartMinutes, ')
           ..write('quietHoursEndMinutes: $quietHoursEndMinutes, ')
-          ..write('lastConnectedDeviceId: $lastConnectedDeviceId')
+          ..write('lastConnectedDeviceId: $lastConnectedDeviceId, ')
+          ..write('autoConnectEnabled: $autoConnectEnabled')
           ..write(')'))
         .toString();
   }
@@ -807,6 +849,7 @@ class Setting extends DataClass implements Insertable<Setting> {
     quietHoursStartMinutes,
     quietHoursEndMinutes,
     lastConnectedDeviceId,
+    autoConnectEnabled,
   );
   @override
   bool operator ==(Object other) =>
@@ -819,7 +862,8 @@ class Setting extends DataClass implements Insertable<Setting> {
           other.pollingIntervalSeconds == this.pollingIntervalSeconds &&
           other.quietHoursStartMinutes == this.quietHoursStartMinutes &&
           other.quietHoursEndMinutes == this.quietHoursEndMinutes &&
-          other.lastConnectedDeviceId == this.lastConnectedDeviceId);
+          other.lastConnectedDeviceId == this.lastConnectedDeviceId &&
+          other.autoConnectEnabled == this.autoConnectEnabled);
 }
 
 class SettingsCompanion extends UpdateCompanion<Setting> {
@@ -831,6 +875,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   final Value<int?> quietHoursStartMinutes;
   final Value<int?> quietHoursEndMinutes;
   final Value<String?> lastConnectedDeviceId;
+  final Value<bool> autoConnectEnabled;
   const SettingsCompanion({
     this.id = const Value.absent(),
     this.useFahrenheit = const Value.absent(),
@@ -840,6 +885,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.quietHoursStartMinutes = const Value.absent(),
     this.quietHoursEndMinutes = const Value.absent(),
     this.lastConnectedDeviceId = const Value.absent(),
+    this.autoConnectEnabled = const Value.absent(),
   });
   SettingsCompanion.insert({
     this.id = const Value.absent(),
@@ -850,6 +896,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     this.quietHoursStartMinutes = const Value.absent(),
     this.quietHoursEndMinutes = const Value.absent(),
     this.lastConnectedDeviceId = const Value.absent(),
+    this.autoConnectEnabled = const Value.absent(),
   });
   static Insertable<Setting> custom({
     Expression<int>? id,
@@ -860,6 +907,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Expression<int>? quietHoursStartMinutes,
     Expression<int>? quietHoursEndMinutes,
     Expression<String>? lastConnectedDeviceId,
+    Expression<bool>? autoConnectEnabled,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -874,6 +922,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
         'quiet_hours_end_minutes': quietHoursEndMinutes,
       if (lastConnectedDeviceId != null)
         'last_connected_device_id': lastConnectedDeviceId,
+      if (autoConnectEnabled != null)
+        'auto_connect_enabled': autoConnectEnabled,
     });
   }
 
@@ -886,6 +936,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
     Value<int?>? quietHoursStartMinutes,
     Value<int?>? quietHoursEndMinutes,
     Value<String?>? lastConnectedDeviceId,
+    Value<bool>? autoConnectEnabled,
   }) {
     return SettingsCompanion(
       id: id ?? this.id,
@@ -899,6 +950,7 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
       quietHoursEndMinutes: quietHoursEndMinutes ?? this.quietHoursEndMinutes,
       lastConnectedDeviceId:
           lastConnectedDeviceId ?? this.lastConnectedDeviceId,
+      autoConnectEnabled: autoConnectEnabled ?? this.autoConnectEnabled,
     );
   }
 
@@ -937,6 +989,9 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
         lastConnectedDeviceId.value,
       );
     }
+    if (autoConnectEnabled.present) {
+      map['auto_connect_enabled'] = Variable<bool>(autoConnectEnabled.value);
+    }
     return map;
   }
 
@@ -950,7 +1005,8 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
           ..write('pollingIntervalSeconds: $pollingIntervalSeconds, ')
           ..write('quietHoursStartMinutes: $quietHoursStartMinutes, ')
           ..write('quietHoursEndMinutes: $quietHoursEndMinutes, ')
-          ..write('lastConnectedDeviceId: $lastConnectedDeviceId')
+          ..write('lastConnectedDeviceId: $lastConnectedDeviceId, ')
+          ..write('autoConnectEnabled: $autoConnectEnabled')
           ..write(')'))
         .toString();
   }
@@ -1872,6 +1928,7 @@ typedef $$SettingsTableCreateCompanionBuilder =
       Value<int?> quietHoursStartMinutes,
       Value<int?> quietHoursEndMinutes,
       Value<String?> lastConnectedDeviceId,
+      Value<bool> autoConnectEnabled,
     });
 typedef $$SettingsTableUpdateCompanionBuilder =
     SettingsCompanion Function({
@@ -1883,6 +1940,7 @@ typedef $$SettingsTableUpdateCompanionBuilder =
       Value<int?> quietHoursStartMinutes,
       Value<int?> quietHoursEndMinutes,
       Value<String?> lastConnectedDeviceId,
+      Value<bool> autoConnectEnabled,
     });
 
 class $$SettingsTableFilterComposer
@@ -1931,6 +1989,11 @@ class $$SettingsTableFilterComposer
 
   ColumnFilters<String> get lastConnectedDeviceId => $composableBuilder(
     column: $table.lastConnectedDeviceId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get autoConnectEnabled => $composableBuilder(
+    column: $table.autoConnectEnabled,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -1983,6 +2046,11 @@ class $$SettingsTableOrderingComposer
     column: $table.lastConnectedDeviceId,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<bool> get autoConnectEnabled => $composableBuilder(
+    column: $table.autoConnectEnabled,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$SettingsTableAnnotationComposer
@@ -2031,6 +2099,11 @@ class $$SettingsTableAnnotationComposer
     column: $table.lastConnectedDeviceId,
     builder: (column) => column,
   );
+
+  GeneratedColumn<bool> get autoConnectEnabled => $composableBuilder(
+    column: $table.autoConnectEnabled,
+    builder: (column) => column,
+  );
 }
 
 class $$SettingsTableTableManager
@@ -2069,6 +2142,7 @@ class $$SettingsTableTableManager
                 Value<int?> quietHoursStartMinutes = const Value.absent(),
                 Value<int?> quietHoursEndMinutes = const Value.absent(),
                 Value<String?> lastConnectedDeviceId = const Value.absent(),
+                Value<bool> autoConnectEnabled = const Value.absent(),
               }) => SettingsCompanion(
                 id: id,
                 useFahrenheit: useFahrenheit,
@@ -2078,6 +2152,7 @@ class $$SettingsTableTableManager
                 quietHoursStartMinutes: quietHoursStartMinutes,
                 quietHoursEndMinutes: quietHoursEndMinutes,
                 lastConnectedDeviceId: lastConnectedDeviceId,
+                autoConnectEnabled: autoConnectEnabled,
               ),
           createCompanionCallback:
               ({
@@ -2089,6 +2164,7 @@ class $$SettingsTableTableManager
                 Value<int?> quietHoursStartMinutes = const Value.absent(),
                 Value<int?> quietHoursEndMinutes = const Value.absent(),
                 Value<String?> lastConnectedDeviceId = const Value.absent(),
+                Value<bool> autoConnectEnabled = const Value.absent(),
               }) => SettingsCompanion.insert(
                 id: id,
                 useFahrenheit: useFahrenheit,
@@ -2098,6 +2174,7 @@ class $$SettingsTableTableManager
                 quietHoursStartMinutes: quietHoursStartMinutes,
                 quietHoursEndMinutes: quietHoursEndMinutes,
                 lastConnectedDeviceId: lastConnectedDeviceId,
+                autoConnectEnabled: autoConnectEnabled,
               ),
           withReferenceMapper:
               (p0) =>

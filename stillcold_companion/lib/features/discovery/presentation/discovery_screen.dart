@@ -10,13 +10,6 @@ import '../../settings/presentation/settings_screen.dart'
     show settingsFutureProvider;
 import '../application/discovery_controller.dart';
 
-final deviceLabelForIdProvider =
-    FutureProvider.family<String?, String>((ref, String deviceId) async {
-  final repo = ref.watch(deviceLabelsRepositoryProvider);
-  final label = await repo.getLabelForDevice(deviceId);
-  return label?.label;
-});
-
 class DiscoveryScreen extends ConsumerWidget {
   const DiscoveryScreen({super.key});
 
@@ -26,6 +19,25 @@ class DiscoveryScreen extends ConsumerWidget {
     final state = ref.watch(discoveryControllerProvider);
     final controller = ref.read(discoveryControllerProvider.notifier);
     final settingsAsync = ref.watch(settingsFutureProvider);
+
+    // FR-1.6: Auto-navigate when the last-connected device first appears in scan results.
+    // Only fires when the user has auto-connect enabled in Settings.
+    ref.listen(discoveryControllerProvider, (prev, next) {
+      final s = settingsAsync.maybeWhen(data: (s) => s, orElse: () => null);
+      if (s == null || s.lastConnectedDeviceId == null) return;
+      if (!s.autoConnectEnabled) return;
+      if (!next.isScanning) return;
+      final appearedNow = next.devices.any((d) => d.id == s.lastConnectedDeviceId) &&
+          (prev == null || !prev.devices.any((d) => d.id == s.lastConnectedDeviceId));
+      if (appearedNow) {
+        final device = next.devices.firstWhere((d) => d.id == s.lastConnectedDeviceId);
+        ref.read(selectedDeviceIdProvider.notifier).state = device.id;
+        context.push(
+          DashboardScreen.routeForDevice(device.id),
+          extra: device.rssi,
+        );
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -105,9 +117,9 @@ class DiscoveryScreen extends ConsumerWidget {
                           ? 'Scanning for StillCold devices...'
                           : 'No devices found yet',
                       message: state.isScanning
-                          ? 'Looking for devices named “StillCold” nearby.'
+                          ? 'Looking for devices named "StillCold" nearby.'
                           : 'When you scan, StillCold devices in range will appear here. '
-                              'You can assign friendly labels like “Kitchen fridge” later.',
+                              'Long-press a device to assign a label like "Kitchen fridge".',
                       primaryActionLabel:
                           state.isScanning ? 'Stop scan' : 'Scan for devices',
                       onPrimaryAction: () {
@@ -116,39 +128,111 @@ class DiscoveryScreen extends ConsumerWidget {
                             : controller.startScan();
                       },
                     )
-                  : ListView.separated(
-                      padding: const EdgeInsets.all(24),
-                      itemBuilder: (context, index) {
-                        final device = state.devices[index];
-                        final labelAsync =
-                            ref.watch(deviceLabelForIdProvider(device.id));
-                        final fallbackName = device.name.isEmpty
-                            ? 'StillCold (${device.id.substring(0, 4)})'
-                            : device.name;
-                        final titleText = labelAsync.maybeWhen(
-                          data: (label) => label ?? fallbackName,
-                          orElse: () => fallbackName,
-                        );
-                        return ListTile(
-                          leading: Icon(
-                            Icons.sensors,
-                            color: theme.colorScheme.primary,
+                  : Column(
+                      children: [
+                        Expanded(
+                          child: ListView.separated(
+                            padding: const EdgeInsets.all(24),
+                            itemBuilder: (context, index) {
+                              final device = state.devices[index];
+                              final labelAsync =
+                                  ref.watch(deviceLabelForIdProvider(device.id));
+                              final fallbackName = device.name.isEmpty
+                                  ? 'StillCold (${device.id.substring(0, 4)})'
+                                  : device.name;
+                              final titleText = labelAsync.maybeWhen(
+                                data: (label) => label ?? fallbackName,
+                                orElse: () => fallbackName,
+                              );
+                              return ListTile(
+                                leading: Icon(
+                                  Icons.sensors,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                title: Text(titleText),
+                                subtitle: Text('RSSI: ${device.rssi} dBm'),
+                                trailing: const Icon(Icons.chevron_right),
+                                onTap: () {
+                                  ref
+                                      .read(selectedDeviceIdProvider.notifier)
+                                      .state = device.id;
+                                  context.push(
+                                    DashboardScreen.routeForDevice(device.id),
+                                    extra: device.rssi,
+                                  );
+                                },
+                                // FR-1.8: Long-press to assign or update device label.
+                                onLongPress: () async {
+                                  final currentLabel = labelAsync.maybeWhen(
+                                    data: (l) => l,
+                                    orElse: () => null,
+                                  );
+                                  final textController =
+                                      TextEditingController(text: currentLabel ?? '');
+                                  final result = await showDialog<String?>(
+                                    context: context,
+                                    builder: (ctx) => AlertDialog(
+                                      title: const Text('Device label'),
+                                      content: TextField(
+                                        controller: textController,
+                                        autofocus: true,
+                                        decoration: const InputDecoration(
+                                          hintText: 'e.g. Kitchen fridge',
+                                          labelText: 'Label',
+                                        ),
+                                        onSubmitted: (_) =>
+                                            Navigator.pop(ctx, textController.text.trim()),
+                                      ),
+                                      actions: [
+                                        if (currentLabel != null)
+                                          TextButton(
+                                            onPressed: () => Navigator.pop(ctx, ''),
+                                            child: const Text('Remove'),
+                                          ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(ctx, null),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(
+                                              ctx, textController.text.trim()),
+                                          child: const Text('Save'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                  if (result == null) return;
+                                  if (result.isEmpty) {
+                                    await ref
+                                        .read(deviceLabelsRepositoryProvider)
+                                        .deleteLabel(device.id);
+                                  } else {
+                                    await ref
+                                        .read(deviceLabelsRepositoryProvider)
+                                        .upsertLabel(
+                                          deviceId: device.id,
+                                          label: result,
+                                        );
+                                  }
+                                  ref.invalidate(deviceLabelForIdProvider(device.id));
+                                },
+                              );
+                            },
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            itemCount: state.devices.length,
                           ),
-                          title: Text(titleText),
-                          subtitle: Text('RSSI: ${device.rssi} dBm'),
-                          trailing: const Icon(Icons.chevron_right),
-                          onTap: () {
-                            ref
-                                .read(selectedDeviceIdProvider.notifier)
-                                .state = device.id;
-                            context.push(
-                              DashboardScreen.routeForDevice(device.id),
-                            );
-                          },
-                        );
-                      },
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemCount: state.devices.length,
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 8),
+                          child: Text(
+                            'Long-press a device to assign a label.',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
             ),
           ],
@@ -166,5 +250,3 @@ class DiscoveryScreen extends ConsumerWidget {
     );
   }
 }
-
-

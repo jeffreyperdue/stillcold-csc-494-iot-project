@@ -10,6 +10,14 @@ import '../../services/alerts/alert_evaluator.dart';
 import '../../services/ble/ble_client.dart';
 import '../../services/notifications/local_notifications_service.dart';
 
+/// Resolves the user-assigned label for a given device ID, or null if none is set.
+final deviceLabelForIdProvider =
+    FutureProvider.family<String?, String>((ref, String deviceId) async {
+  final repo = ref.watch(deviceLabelsRepositoryProvider);
+  final label = await repo.getLabelForDevice(deviceId);
+  return (label as DeviceLabel?)?.label;
+});
+
 final flutterReactiveBleProvider = Provider<FlutterReactiveBle>((ref) {
   return FlutterReactiveBle();
 });

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/di/providers.dart' show deviceLabelForIdProvider;
 import '../../../core/widgets/empty_state.dart';
 import '../../../core/widgets/status_chip.dart';
 import '../../settings/presentation/settings_screen.dart'
@@ -9,9 +10,16 @@ import '../../settings/presentation/settings_screen.dart'
 import '../application/dashboard_controller.dart';
 
 class DashboardScreen extends ConsumerWidget {
-  const DashboardScreen({super.key, required this.deviceId});
+  const DashboardScreen({
+    super.key,
+    required this.deviceId,
+    this.rssi,
+  });
 
   final String deviceId;
+
+  /// Signal strength at the time the device was selected in Discovery.
+  final int? rssi;
 
   static String routeForDevice(String deviceId) => '/dashboard/$deviceId';
 
@@ -22,8 +30,15 @@ class DashboardScreen extends ConsumerWidget {
     final controller =
         ref.read(dashboardControllerProvider(deviceId).notifier);
     final settingsAsync = ref.watch(settingsFutureProvider);
+    final labelAsync = ref.watch(deviceLabelForIdProvider(deviceId));
+    final deviceTitle = labelAsync.maybeWhen(
+      data: (label) => label ?? 'StillCold device',
+      orElse: () => 'StillCold device',
+    );
 
-    final isConnected = state.connectionStatus == ConnectionStatus.connected;
+    final isConnected = state.connectionStatus == ConnectionStatus.connected ||
+        state.connectionStatus == ConnectionStatus.stale;
+    final isStale = state.connectionStatus == ConnectionStatus.stale;
 
     return Scaffold(
       appBar: AppBar(
@@ -68,10 +83,11 @@ class DashboardScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            if (state.connectionLost) _ConnectionLostBanner(
-              onReconnect: () => controller.reconnect(),
-              onGoToDiscovery: () => context.go('/discovery'),
-            ),
+            if (state.connectionLost)
+              _ConnectionLostBanner(
+                onReconnect: () => controller.reconnect(),
+                onGoToDiscovery: () => context.go('/discovery'),
+              ),
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(24),
@@ -85,13 +101,27 @@ class DashboardScreen extends ConsumerWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'StillCold device',
+                                deviceTitle,
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                               const SizedBox(height: 4),
-                              StatusChip(status: state.connectionStatus),
+                              Row(
+                                children: [
+                                  StatusChip(status: state.connectionStatus),
+                                  if (rssi != null) ...[
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Signal: $rssi dBm',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
                             ],
                           ),
                         ),
@@ -110,7 +140,9 @@ class DashboardScreen extends ConsumerWidget {
                               state.reading == null
                                   ? 'Not yet'
                                   : _formatTimeAgo(state.reading!.timestamp),
-                              style: theme.textTheme.bodyMedium,
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: isStale ? Colors.amber.shade700 : null,
+                              ),
                             ),
                           ],
                         ),
@@ -132,90 +164,133 @@ class DashboardScreen extends ConsumerWidget {
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(24),
-                          child: Row(
+                          child: Column(
                             children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Temperature',
-                                      style:
-                                          theme.textTheme.bodyMedium?.copyWith(
-                                        color: Colors.grey.shade700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Row(
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
                                       crossAxisAlignment:
-                                          CrossAxisAlignment.end,
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          _formatTemperature(
-                                            state.reading?.temperatureC,
-                                            settingsAsync,
-                                          ),
-                                          style: theme.textTheme.displayMedium
-                                              ?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Padding(
-                                          padding: const EdgeInsets.only(
-                                              bottom: 8.0),
-                                          child: Text(
-                                            _temperatureUnit(settingsAsync),
-                                            style: theme.textTheme.titleMedium
-                                                ?.copyWith(
-                                              color: Colors.grey.shade700,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 24),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Humidity',
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: Colors.grey.shade700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                        state.reading?.humidityPercent
-                                                ?.toStringAsFixed(0) ??
-                                            '--',
-                                        style: theme.textTheme.headlineMedium
-                                            ?.copyWith(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Padding(
-                                        padding:
-                                            const EdgeInsets.only(bottom: 4.0),
-                                        child: Text(
-                                          '%',
-                                          style: theme.textTheme.titleMedium
+                                          'Temperature',
+                                          style: theme.textTheme.bodyMedium
                                               ?.copyWith(
                                             color: Colors.grey.shade700,
                                           ),
                                         ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.end,
+                                          children: [
+                                            Text(
+                                              _formatTemperature(
+                                                state.reading?.temperatureC,
+                                                settingsAsync,
+                                              ),
+                                              style: theme
+                                                  .textTheme.displayMedium
+                                                  ?.copyWith(
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Padding(
+                                              padding: const EdgeInsets.only(
+                                                  bottom: 8.0),
+                                              child: Text(
+                                                _temperatureUnit(settingsAsync),
+                                                style: theme
+                                                    .textTheme.titleMedium
+                                                    ?.copyWith(
+                                                  color: Colors.grey.shade700,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 24),
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Humidity',
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                          color: Colors.grey.shade700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            state.reading?.humidityPercent
+                                                    ?.toStringAsFixed(0) ??
+                                                '--',
+                                            style: theme
+                                                .textTheme.headlineMedium
+                                                ?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                bottom: 4.0),
+                                            child: Text(
+                                              '%',
+                                              style: theme
+                                                  .textTheme.titleMedium
+                                                  ?.copyWith(
+                                                color: Colors.grey.shade700,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
                                 ],
                               ),
+                              if (state.minTempC != null &&
+                                  state.maxTempC != null) ...[
+                                const Divider(height: 24),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.arrow_downward,
+                                        size: 16, color: Colors.blueAccent),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${_formatTemperature(state.minTempC, settingsAsync)} ${_temperatureUnit(settingsAsync)}',
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
+                                    const SizedBox(width: 16),
+                                    const Icon(Icons.arrow_upward,
+                                        size: 16, color: Colors.redAccent),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '${_formatTemperature(state.maxTempC, settingsAsync)} ${_temperatureUnit(settingsAsync)}',
+                                      style: theme.textTheme.bodyMedium,
+                                    ),
+                                    const Spacer(),
+                                    Text(
+                                      '24h range',
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ],
                           ),
                         ),

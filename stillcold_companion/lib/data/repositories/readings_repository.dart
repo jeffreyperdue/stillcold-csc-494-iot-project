@@ -27,23 +27,21 @@ class ReadingsRepository {
   }
 
   Future<double?> getMinTemperatureSince(DateTime from) async {
-    final query = _db.readings
-        .createAlias('r')
-        .selectOnly()
-      ..addColumns([_db.readings.temperatureC.min()]);
-    query.where(_db.readings.timestamp.isBiggerOrEqualValue(from));
+    final minExpr = _db.readings.temperatureC.min();
+    final query = _db.readings.selectOnly()
+      ..addColumns([minExpr])
+      ..where(_db.readings.timestamp.isBiggerOrEqualValue(from));
     final row = await query.getSingleOrNull();
-    return row?.read(_db.readings.temperatureC.min());
+    return row?.read(minExpr);
   }
 
   Future<double?> getMaxTemperatureSince(DateTime from) async {
-    final query = _db.readings
-        .createAlias('r2')
-        .selectOnly()
-      ..addColumns([_db.readings.temperatureC.max()]);
-    query.where(_db.readings.timestamp.isBiggerOrEqualValue(from));
+    final maxExpr = _db.readings.temperatureC.max();
+    final query = _db.readings.selectOnly()
+      ..addColumns([maxExpr])
+      ..where(_db.readings.timestamp.isBiggerOrEqualValue(from));
     final row = await query.getSingleOrNull();
-    return row?.read(_db.readings.temperatureC.max());
+    return row?.read(maxExpr);
   }
 }
 

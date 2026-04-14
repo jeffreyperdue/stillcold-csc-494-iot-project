@@ -26,6 +26,7 @@ class SettingsRepository {
     int? quietHoursStartMinutes,
     int? quietHoursEndMinutes,
     String? lastConnectedDeviceId,
+    bool? autoConnectEnabled,
   }) async {
     final current = await load();
     final companion = SettingsCompanion(
@@ -50,6 +51,9 @@ class SettingsRepository {
           : const drift.Value.absent(),
       lastConnectedDeviceId: lastConnectedDeviceId != null
           ? drift.Value(lastConnectedDeviceId)
+          : const drift.Value.absent(),
+      autoConnectEnabled: autoConnectEnabled != null
+          ? drift.Value(autoConnectEnabled)
           : const drift.Value.absent(),
     );
 

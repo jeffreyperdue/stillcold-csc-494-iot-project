@@ -30,6 +30,8 @@ class DashboardState {
     this.reading,
     this.errorMessage,
     this.connectionLost = false,
+    this.minTempC,
+    this.maxTempC,
   });
 
   final ConnectionStatus connectionStatus;
@@ -40,12 +42,20 @@ class DashboardState {
   /// True when the device disconnected unexpectedly (not via explicit Disconnect).
   final bool connectionLost;
 
+  /// Min temperature over the last 24 hours (null until first successful read).
+  final double? minTempC;
+
+  /// Max temperature over the last 24 hours (null until first successful read).
+  final double? maxTempC;
+
   DashboardState copyWith({
     ConnectionStatus? connectionStatus,
     bool? isLoading,
     DashboardReading? reading,
     String? errorMessage,
     bool? connectionLost,
+    double? minTempC,
+    double? maxTempC,
   }) {
     return DashboardState(
       connectionStatus: connectionStatus ?? this.connectionStatus,
@@ -53,6 +63,8 @@ class DashboardState {
       reading: reading ?? this.reading,
       errorMessage: errorMessage,
       connectionLost: connectionLost ?? this.connectionLost,
+      minTempC: minTempC ?? this.minTempC,
+      maxTempC: maxTempC ?? this.maxTempC,
     );
   }
 }
@@ -97,6 +109,7 @@ class DashboardController extends StateNotifier<DashboardState> {
   StreamSubscription<ConnectionStateUpdate>? _connectionSub;
   Timer? _pollingTimer;
   bool _intentionalDisconnect = false;
+  int _currentPollingInterval = 15;
 
   void _initConnection() {
     if (!mounted) return;
@@ -156,6 +169,7 @@ class DashboardController extends StateNotifier<DashboardState> {
   /// Self-rescheduling one-shot timer so interval changes in Settings take
   /// effect on the very next cycle without needing a reconnect.
   void _scheduleNextPoll(int intervalSeconds) {
+    _currentPollingInterval = intervalSeconds;
     _pollingTimer?.cancel();
     if (!mounted) return;
     _pollingTimer = Timer(Duration(seconds: intervalSeconds), () async {
@@ -170,6 +184,22 @@ class DashboardController extends StateNotifier<DashboardState> {
   void _stopPolling() {
     _pollingTimer?.cancel();
     _pollingTimer = null;
+  }
+
+  /// Checks whether the most recent reading is older than 2× the polling
+  /// interval and updates connectionStatus to stale/connected accordingly.
+  void _checkStaleness() {
+    if (!mounted || state.reading == null) return;
+    if (state.connectionStatus != ConnectionStatus.connected &&
+        state.connectionStatus != ConnectionStatus.stale) return;
+    final age = DateTime.now()
+        .difference(state.reading!.timestamp)
+        .inSeconds;
+    final isStale = age > _currentPollingInterval * 2;
+    state = state.copyWith(
+      connectionStatus:
+          isStale ? ConnectionStatus.stale : ConnectionStatus.connected,
+    );
   }
 
   /// Explicitly disconnects from the device. Call before navigating to Discovery.
@@ -209,6 +239,7 @@ class DashboardController extends StateNotifier<DashboardState> {
           isLoading: false,
           errorMessage: 'Could not read temperature from device.',
         );
+        _checkStaleness();
         return;
       }
 
@@ -237,18 +268,29 @@ class DashboardController extends StateNotifier<DashboardState> {
         timestamp: now,
       );
 
+      // Query 24h min/max after storing the new reading.
+      final since = now.subtract(const Duration(hours: 24));
+      final minTemp = await _readingsRepository.getMinTemperatureSince(since);
+      final maxTemp = await _readingsRepository.getMaxTemperatureSince(since);
+
       if (!mounted) return;
+      // A fresh read is never stale — force back to connected before staleness check.
       state = state.copyWith(
         isLoading: false,
         reading: reading,
         connectionLost: false,
+        connectionStatus: ConnectionStatus.connected,
+        minTempC: minTemp,
+        maxTempC: maxTemp,
       );
+      _checkStaleness();
     } catch (e) {
       if (!mounted) return;
       state = state.copyWith(
         isLoading: false,
         errorMessage: 'Failed to refresh: $e',
       );
+      _checkStaleness();
     }
   }
 

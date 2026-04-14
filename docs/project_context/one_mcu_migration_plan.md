@@ -82,7 +82,7 @@ Both `stillcold_sensing_node/` and `stillcold_comm_node/` are the known-good bas
 Create `Arduino/stillcold_esp32_only/stillcold_esp32_only.ino`. This is a new file; it does not replace the existing sketches.
 
 **Step 1.2 — Write the merged `setup()` block.**
-Combine the BLE initialization from `stillcold_comm_node.ino` with the sensor initialization from `stillcold_sensing_node.ino`. Call `Wire.begin()` with explicit pin arguments before `mySensor.begin()`.
+Combine the BLE initialization from `stillcold_comm_node.ino` with the sensor initialization from `stillcold_sensing_node.ino`. Call `Wire.setPins()` with explicit pin arguments before `mySensor.begin()`. Do **not** call `Wire.begin(SDA, SCL)` — the SparkFun HTU21D library calls `Wire.begin()` internally with no arguments inside its own `begin()`, which would overwrite any pins set by a prior `Wire.begin(SDA, SCL)` call. `Wire.setPins()` (ESP32 Arduino core v3.x) stores the SDA/SCL values without initializing the bus, so the library's internal `Wire.begin()` picks them up correctly.
 
 ```cpp
 #include <Wire.h>
@@ -116,7 +116,10 @@ class MyServerCallbacks : public BLEServerCallbacks {
 
 void setup() {
   Serial.begin(115200);
-  Wire.begin(SDA_PIN, SCL_PIN);
+  // Wire.setPins() stores the custom SDA/SCL before mySensor.begin() calls
+  // Wire.begin() internally with no arguments. Calling Wire.begin(SDA, SCL)
+  // here instead would be overwritten by that internal call on ESP32 Arduino core.
+  Wire.setPins(SDA_PIN, SCL_PIN);
   mySensor.begin(Wire);
   delay(1000);
   Serial.println("StillCold — ESP32-only starting...");
