@@ -1,12 +1,13 @@
 #include <Wire.h>
+#include <WiFi.h>
 #include <SparkFunHTU21D.h>
 #include <BLEDevice.h>
 #include <BLEServer.h>
 #include <BLEUtils.h>
 #include <BLE2902.h>
 
-#define SDA_PIN 22  // D4 on XIAO ESP32-C6
-#define SCL_PIN 23  // D5 on XIAO ESP32-C6
+#define SDA_PIN 22
+#define SCL_PIN 23
 
 HTU21D mySensor;
 
@@ -29,12 +30,16 @@ class MyServerCallbacks : public BLEServerCallbacks {
 
 void setup() {
   Serial.begin(115200);
-  delay(3000);
-  Serial.println("StillCold — ESP32-only starting...");
+  delay(100);
+
   Wire.setPins(SDA_PIN, SCL_PIN);
   mySensor.begin(Wire);
-  delay(1000);
+  delay(100);
   Serial.println("StillCold — ESP32-only starting...");
+
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
+  Serial.println("WiFi radio initialized for keep-alive.");
 
   BLEDevice::init("StillCold");
   pServer = BLEDevice::createServer();
@@ -58,18 +63,31 @@ void setup() {
 
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID("12345678-1234-1234-1234-1234567890ab");
+  pAdvertising->setMinInterval(0x20);
+  pAdvertising->setMaxInterval(0x40);
   pAdvertising->start();
 
   Serial.println("BLE Ready.");
 }
 
 void loop() {
+  // If the client has disconnected (or the app was killed before a clean
+  // disconnect), the supervision timeout may not have fired yet but
+  // deviceConnected will eventually become false. Restarting advertising
+  // here ensures the device is always discoverable whenever it is not
+  // connected, regardless of how the previous connection ended.
+  if (!deviceConnected) {
+    BLEDevice::startAdvertising();
+  }
+
   float temperature = mySensor.readTemperature();
   float humidity    = mySensor.readHumidity();
 
   if (temperature >= 998 || humidity >= 998 || isnan(temperature) || isnan(humidity)) {
     Serial.println("HTU21D read error — skipping");
-    delay(2000);
+    WiFi.scanNetworks(false, true, false, 300);
+    WiFi.scanDelete();
+    delay(1700);
     return;
   }
 
@@ -80,5 +98,8 @@ void loop() {
   pTemperatureCharacteristic->setValue(String(temperature, 2).c_str());
   pHumidityCharacteristic->setValue(String(humidity, 2).c_str());
 
-  delay(2000);
+  // Brief WiFi scan draws significant current — keeps power bank above shutoff threshold
+  WiFi.scanNetworks(false, true, false, 300);
+  WiFi.scanDelete();
+  delay(1700);
 }

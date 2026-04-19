@@ -58,7 +58,16 @@ class BleClient {
   Stream<ConnectionStateUpdate> connectToDevice(String deviceId) {
     return _ble.connectToDevice(
       id: deviceId,
-      connectionTimeout: const Duration(seconds: 10),
+      connectionTimeout: const Duration(seconds: 15),
+      // Providing exact service/characteristic UUIDs lets flutter_reactive_ble
+      // skip the full GATT discovery phase on every connect, cutting 2–5 s of
+      // connection overhead on Android.
+      servicesWithCharacteristicsToDiscover: {
+        Uuid.parse(BleConfig.serviceUuid): [
+          Uuid.parse(BleConfig.temperatureCharacteristicUuid),
+          Uuid.parse(BleConfig.humidityCharacteristicUuid),
+        ],
+      },
     );
   }
 

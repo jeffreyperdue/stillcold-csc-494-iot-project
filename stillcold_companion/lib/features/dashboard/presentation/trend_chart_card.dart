@@ -119,16 +119,14 @@ class _TrendChartCardState extends ConsumerState<TrendChartCard> {
                 ),
                 data: (data) {
                   if (data.points.isEmpty) {
-                    return EmptyState(
-                      icon: Icons.show_chart,
+                    return const EmptyState(
                       title: 'No data yet',
                       message:
                           'Connect your device to start collecting readings.',
                     );
                   }
                   if (data.points.length < 2) {
-                    return EmptyState(
-                      icon: Icons.show_chart,
+                    return const EmptyState(
                       title: 'Not enough data',
                       message:
                           'Keep the device connected to build up history.',
@@ -168,8 +166,7 @@ class _TrendChartCardState extends ConsumerState<TrendChartCard> {
     final validY =
         spots.where((s) => !s.y.isNaN).map((s) => s.y).toList();
     if (validY.isEmpty) {
-      return EmptyState(
-        icon: Icons.show_chart,
+      return const EmptyState(
         title: 'No data for this metric',
         message: 'Humidity readings are not available for this period.',
       );

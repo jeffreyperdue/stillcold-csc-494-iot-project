@@ -111,6 +111,11 @@ class DashboardController extends StateNotifier<DashboardState> {
   bool _intentionalDisconnect = false;
   int _currentPollingInterval = 15;
 
+  /// Tracks how many automatic retry attempts have been made for the current
+  /// connection session. Reset to 0 on every intentional disconnect/reconnect
+  /// so a single session only gets one silent retry.
+  int _reconnectAttempts = 0;
+
   void _initConnection() {
     if (!mounted) return;
     state = state.copyWith(connectionStatus: ConnectionStatus.connecting);
@@ -144,14 +149,31 @@ class DashboardController extends StateNotifier<DashboardState> {
             break;
         }
       },
-      onError: (_) {
+      onError: (_) async {
         if (!mounted) return;
         _stopPolling();
-        state = state.copyWith(
-          connectionStatus: ConnectionStatus.disconnected,
-          errorMessage:
-              'Connection failed. Move closer to the device and try again.',
-        );
+        await _connectionSub?.cancel();
+        _connectionSub = null;
+
+        // If this was not an intentional disconnect and we haven't already
+        // retried, wait briefly and try once more. This transparently handles
+        // the case where the device was still booting or the OS hadn't finished
+        // the previous connection's teardown when the first attempt was made.
+        if (!_intentionalDisconnect && _reconnectAttempts < 1) {
+          _reconnectAttempts++;
+          state = state.copyWith(
+            connectionStatus: ConnectionStatus.connecting,
+          );
+          await Future.delayed(const Duration(seconds: 2));
+          if (mounted) _initConnection();
+        } else {
+          _reconnectAttempts = 0;
+          state = state.copyWith(
+            connectionStatus: ConnectionStatus.disconnected,
+            errorMessage:
+                'Connection failed. Move closer to the device and try again.',
+          );
+        }
       },
     );
   }
@@ -205,6 +227,7 @@ class DashboardController extends StateNotifier<DashboardState> {
   /// Explicitly disconnects from the device. Call before navigating to Discovery.
   Future<void> disconnect() async {
     _intentionalDisconnect = true;
+    _reconnectAttempts = 0;
     _stopPolling();
     await _connectionSub?.cancel();
     _connectionSub = null;
@@ -216,6 +239,7 @@ class DashboardController extends StateNotifier<DashboardState> {
   /// Re-initiates connection after an unexpected drop.
   Future<void> reconnect() async {
     _intentionalDisconnect = false;
+    _reconnectAttempts = 0;
     _stopPolling();
     await _connectionSub?.cancel();
     _connectionSub = null;
