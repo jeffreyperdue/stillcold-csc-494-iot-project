@@ -1707,6 +1707,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SettingsTable settings = $SettingsTable(this);
   late final $AlertEventsTable alertEvents = $AlertEventsTable(this);
   late final $DeviceLabelsTable deviceLabels = $DeviceLabelsTable(this);
+  late final Index idxReadingsDeviceTime = Index(
+    'idx_readings_device_time',
+    'CREATE INDEX idx_readings_device_time ON readings (device_id, timestamp)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1716,6 +1720,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     settings,
     alertEvents,
     deviceLabels,
+    idxReadingsDeviceTime,
   ];
 }
 

@@ -8,6 +8,7 @@ import '../../../core/widgets/status_chip.dart';
 import '../../settings/presentation/settings_screen.dart'
     show settingsFutureProvider;
 import '../application/dashboard_controller.dart';
+import 'trend_chart_card.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({
@@ -89,7 +90,7 @@ class DashboardScreen extends ConsumerWidget {
                 onGoToDiscovery: () => context.go('/discovery'),
               ),
             Expanded(
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -150,7 +151,8 @@ class DashboardScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 24),
                     if (state.reading == null && state.errorMessage != null)
-                      Expanded(
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 48),
                         child: EmptyState(
                           icon: Icons.thermostat,
                           title: 'No reading yet',
@@ -297,26 +299,15 @@ class DashboardScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'Trends (mock)',
+                        'Trends',
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Expanded(
-                        child: Container(
-                          width: double.infinity,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'Trend chart placeholder\n(24h / 7d)',
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
+                      SizedBox(
+                        height: 280,
+                        child: TrendChartCard(deviceId: deviceId),
                       ),
                     ],
                   ],

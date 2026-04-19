@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 
 part 'app_database.g.dart';
 
+@TableIndex(name: 'idx_readings_device_time', columns: {#deviceId, #timestamp})
 class Readings extends Table {
   IntColumn get id => integer().autoIncrement()();
   TextColumn get deviceId => text()();
@@ -56,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -76,15 +77,42 @@ class AppDatabase extends _$AppDatabase {
             // v2 → v3: add autoConnectEnabled column to settings.
             await m.addColumn(settings, settings.autoConnectEnabled);
           }
+          if (from <= 3) {
+            // v3 → v4: add composite index for efficient per-device time-range queries.
+            await customStatement(
+              'CREATE INDEX IF NOT EXISTS idx_readings_device_time '
+              'ON readings (device_id, "timestamp")',
+            );
+          }
         },
       );
 
   Future<int> insertReading(ReadingsCompanion entry) =>
       into(readings).insert(entry);
 
-  Future<List<Reading>> getReadingsSince(DateTime from) =>
-      (select(readings)..where((tbl) => tbl.timestamp.isBiggerOrEqualValue(from)))
+  Future<void> deleteReadingsOlderThan(DateTime cutoff) =>
+      (delete(readings)..where((tbl) => tbl.timestamp.isSmallerThanValue(cutoff)))
+          .go();
+
+  Future<List<Reading>> getReadingsSince(DateTime from, String deviceId) =>
+      (select(readings)
+            ..where(
+              (tbl) =>
+                  tbl.timestamp.isBiggerOrEqualValue(from) &
+                  tbl.deviceId.equals(deviceId),
+            )
+            ..orderBy([(tbl) => OrderingTerm.asc(tbl.timestamp)]))
           .get();
+
+  Stream<List<Reading>> watchReadingsSince(DateTime from, String deviceId) =>
+      (select(readings)
+            ..where(
+              (tbl) =>
+                  tbl.timestamp.isBiggerOrEqualValue(from) &
+                  tbl.deviceId.equals(deviceId),
+            )
+            ..orderBy([(tbl) => OrderingTerm.asc(tbl.timestamp)]))
+          .watch();
 
   Future<Setting?> loadSettings() async {
     final all = await select(settings).get();

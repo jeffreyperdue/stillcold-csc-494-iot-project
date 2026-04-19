@@ -270,8 +270,8 @@ class DashboardController extends StateNotifier<DashboardState> {
 
       // Query 24h min/max after storing the new reading.
       final since = now.subtract(const Duration(hours: 24));
-      final minTemp = await _readingsRepository.getMinTemperatureSince(since);
-      final maxTemp = await _readingsRepository.getMaxTemperatureSince(since);
+      final minTemp = await _readingsRepository.getMinTemperatureSince(since, deviceId);
+      final maxTemp = await _readingsRepository.getMaxTemperatureSince(since, deviceId);
 
       if (!mounted) return;
       // A fresh read is never stale — force back to connected before staleness check.

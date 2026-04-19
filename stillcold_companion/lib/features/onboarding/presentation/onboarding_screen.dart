@@ -15,7 +15,7 @@ class OnboardingScreen extends StatelessWidget {
         title: const Text('Welcome to StillCold'),
       ),
       body: SafeArea(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -53,7 +53,7 @@ class OnboardingScreen extends StatelessWidget {
                 body:
                     'Configure high / low thresholds and get notified when temperatures drift out of range.',
               ),
-              const Spacer(),
+              const SizedBox(height: 32),
               PrimaryButton(
                 label: 'Get started',
                 icon: Icons.arrow_forward_rounded,
