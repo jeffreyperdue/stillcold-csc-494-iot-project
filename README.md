@@ -1,38 +1,45 @@
 # StillCold
 
-## Current status 3.4.26
+## Current Status — 4.19.26
 
-Sprint 1 is complete. The project currently has:
+Both sprints are complete. The project is fully delivered.
 
-- **Full end-to-end embedded pipeline:** HTU21D sensor → Arduino Nano → ESP32-C6 → BLE → external device.
-- **BLE service** on ESP32-C6 exposing temperature and humidity as readable characteristics.
-- **Flutter companion app MVP:** Discovers StillCold over BLE; connects and reads live temperature and humidity; displays readings in a dashboard; supports thresholds, quiet hours, and alert history.
+The final system is a single-MCU design: an HTU21D sensor wired directly to a Seeed XIAO ESP32-C6 exposes live temperature and humidity as BLE GATT characteristics. A Flutter companion app discovers, connects, polls, stores readings in SQLite, and provides a full-featured dashboard with alerts, settings, and trend charts.
 
-For Sprint 2 scope, week-by-week plan, and priorities, see **[Sprint 2 Plan](docs/project_context/sprint_2_plan.md)**.
+**All Must, Should, and Stretch SRS requirements are implemented.**
+
+The project will be presented as a live demonstration at the **NKU Celebration of Student Research and Creativity on Thursday, April 23, 2026**.
+
+- **[Demo Video](https://www.youtube.com/shorts/DTpED5YB1A8)**
+- **[Final Presentation](docs/presentations/final_marp_presentation/final_presentation.md)**
 
 ---
 
 ## 1. Hardware Components
 
-StillCold is built using the following hardware components. This list reflects the complete and current parts list for the project.
+The final hardware is a simplified single-MCU design. The Arduino Nano, logic level shifter, and UART wiring from Sprint 1 have been removed.
 
 | Category | Components |
 |----------|------------|
-| MCUs | ESP32-C6, Arduino Nano |
-| Sensor | HTU21D I²C temperature and humidity sensor |
-| Safety | Bidirectional logic level shifter |
-| Wiring | Breadboard, jumper wires |
-| Assembly | Pin headers |
-| Power | USB cables, 5 V USB wall adapter |
+| MCU | Seeed XIAO ESP32-C6 |
+| Sensor | HTU21D I²C temperature and humidity sensor (3.3 V) |
+| Wiring | Breadboard, 4 jumper wires |
+| Power | USB cable, 5 V USB wall adapter or power bank |
 | Packaging | Silica gel, bag or basic enclosure |
+
+**Removed in Sprint 2:** Arduino Nano, bidirectional logic level shifter, UART wiring.
+
+---
 
 ## 2. Project Title and Description
 
-StillCold is an educational IoT prototype focused on collecting environmental sensor data and exposing it wirelessly using Bluetooth Low Energy (BLE). The project explores how real-world measurements can move through an embedded system, from sensing to wireless access, in a way that is easy to observe and reason about.
+StillCold is an educational IoT prototype focused on collecting environmental sensor data and exposing it wirelessly using Bluetooth Low Energy (BLE). The project explores how real-world measurements can move through an embedded system — from sensing to wireless access to a mobile UI — in a way that is easy to observe and reason about.
 
-The system combines a temperature and humidity sensor with two microcontrollers, separating data collection from wireless communication to keep responsibilities clear and the design modular. This structure allows the project to focus on core system behavior without unnecessary complexity.
+The final system connects an HTU21D temperature and humidity sensor directly to an ESP32-C6 microcontroller. The ESP32-C6 hosts a BLE GATT server that exposes live readings as readable characteristics. A Flutter companion app acts as the BLE client, polling readings, persisting them locally in SQLite, and providing a dashboard with alerts, trend charts, and settings.
 
-While developed primarily as a learning-focused prototype, StillCold is grounded in scenarios that resemble real-world environmental monitoring. The project prioritizes clarity, correctness, and end-to-end functionality over optimization or polish.
+While developed as a learning-focused prototype, StillCold is grounded in a real-world scenario: monitoring the temperature inside a refrigerated enclosure without opening it.
+
+---
 
 ## 3. Problem Domain and Motivation
 
@@ -42,150 +49,139 @@ Many existing monitoring solutions rely on Wi-Fi or cellular connectivity. Wi-Fi
 
 StillCold is motivated by a simple problem: measuring the temperature inside a refrigerated environment without having to access the inside of that environment directly, while avoiding reliance on Wi-Fi or cellular infrastructure. By using Bluetooth Low Energy (BLE), the system allows nearby devices to retrieve sensor data without disturbing the environment and without requiring continuous network connectivity.
 
-This problem provides a practical context for exploring sensor behavior in cold, enclosed spaces and for understanding how short-range wireless communication can support reliable, low-overhead monitoring.
+---
 
 ## 4. Features and Requirements
 
-StillCold is designed around a small set of clearly defined features and requirements, framed through a software-oriented lens while remaining appropriate for an embedded system. The focus is on observable behavior and system responsibilities rather than implementation details.
-
-### Sprint 1 Goal (achieved)
+### Sprint 1 Goal — achieved
 
 Establish a reliable end-to-end data pipeline that measures internal temperature and exposes it via BLE, demonstrating a functional embedded prototype.
 
-### Sprint 1 Features (Prototype / MVP) — delivered
+### Sprint 1 Features — delivered (Weeks 4–7)
 
-- **Internal temperature measurement**  
-  The system measures temperature inside the monitored environment using an internal sensor. Humidity measurements are collected as supporting context but are not the primary focus.
+- **Internal temperature and humidity measurement** via HTU21D sensor
+- **BLE GATT service** on ESP32-C6 exposing temperature and humidity as readable characteristics
+- **End-to-end data flow** from sensor through two-MCU pipeline to BLE
+- **Flutter companion app MVP** — BLE discovery, connection, live dashboard, thresholds, quiet hours, alert history, local storage
 
-- **Wireless temperature access via BLE**  
-  The system exposes the most recent temperature reading through a readable Bluetooth Low Energy (BLE) characteristic that can be accessed by a nearby device.
+### Sprint 2 Goal — achieved
 
-- **End-to-end data flow**  
-  Temperature data flows from the sensor, through the system, and to the BLE interface without manual intervention.
+Refine StillCold into a reliable, tested system that behaves well in realistic cold environments, with a companion app fully aligned to the SRS and a simplified single-MCU hardware design.
 
-- **Initial mobile application groundwork**  
-  A Flutter companion app acts as a BLE client: it discovers StillCold devices, connects, and displays live temperature and humidity in a dashboard. Sprint 1 delivery includes thresholds, quiet hours, alert history, and local storage; further alignment with the SRS continues in Sprint 2.
+### Sprint 2 Features — delivered (Weeks 10–14)
 
-- **No external infrastructure dependency**  
-  The system operates without reliance on Wi-Fi or cellular connectivity.
+- **Cold-environment validation** — Three test scenarios run in a real refrigerator: steady-state readings, door-event recovery, and power-cycle boot time. BLE stable throughout.
+- **Auto-connect** — App reconnects to the last known device on launch.
+- **Onboarding gate** — First-run walkthrough; returning users skip to dashboard.
+- **RSSI display** — Live signal strength shown on the dashboard.
+- **Device labels** — Long-press to rename a paired device.
+- **24h min/max** — Shown at a glance on the dashboard.
+- **Stale-data indicator** — Amber "Stale · last updated X min ago" warning when readings age past ~2–3 minutes.
+- **Threshold unit consistency** — °C / °F alignment in threshold dialog.
+- **Single-MCU migration** — Arduino Nano, level shifter, and UART pipeline removed; ESP32-C6 now reads HTU21D directly over I²C. Flutter app required zero changes.
+- **Trend charts** — 1h / 24h / 7d line charts with temperature / humidity toggle, downsampling, gap visualization, outlier clamping, and Y-axis nice-number algorithm.
+- **30-day data retention** — Rolling pruning policy on every insert; no background scheduler needed.
+- **Database schema v4** — Composite index on `(deviceId, timestamp)`.
 
-### Sprint 1 Functional Requirements
+### Functional Requirements — all complete
 
-- The system shall periodically collect temperature readings from the internal sensor.
-- The system shall transmit the most recent temperature reading to a BLE-capable device upon request.
-- The system shall allow temperature data to be accessed without opening the monitored environment.
+- The system shall periodically collect temperature and humidity readings from the sensor.
+- The system shall expose the most recent readings via BLE GATT characteristics readable by a nearby device.
+- The system shall allow data to be accessed without opening the monitored environment.
 - The system shall operate independently of internet connectivity.
+- The system shall persist readings locally and support trend visualization over selectable time ranges.
+- The system shall alert the user when readings cross configurable thresholds.
 
-### Sprint 1 Non-Functional Requirements
+### Non-Functional Requirements — all met
 
-- The system should expose temperature data in a simple, readable format.
-- The system should prioritize correctness and reliability over optimization.
-- The system should be understandable and observable during development and testing.
+- The system exposes data in a simple, human-readable format.
+- The system prioritizes correctness and reliability over optimization.
+- The system remains aligned with its original problem scope throughout both sprints.
 
-### Sprint 1 Weekly Milestones — completed
+---
 
-- **Week 4**  
-  Hardware setup and verification, including sensor communication and microcontroller integration.
+## 5. System Architecture
 
-- **Week 5**  
-  Reliable temperature data acquisition and transfer between system components.
+### Final Architecture (Single-MCU)
 
-- **Week 6**  
-  BLE service and characteristic implementation with readable temperature data.
+```
+HTU21D ──I²C (3.3 V)──▶ ESP32-C6 ──BLE (GATT)──▶ Flutter App ──▶ User
+```
 
-- **Week 7**  
-  End-to-end system validation and Flutter companion app MVP (discovery, dashboard, thresholds, quiet hours, alert history).
+| Layer | Component |
+|-------|-----------|
+| Sensor | HTU21D temperature + humidity (I²C, 3.3 V, address `0x40`) |
+| MCU / BLE server | Seeed XIAO ESP32-C6 — reads sensor, hosts GATT server, re-advertises on disconnect |
+| Transport | BLE GATT — custom service UUID; temperature + humidity as read-only ASCII characteristics |
+| App | Flutter — BLE client, live dashboard, threshold alerts, trend charts |
+| App storage | Drift (SQLite) — schema v4, 30-day retention, composite index on `(deviceId, timestamp)` |
+| Charting | fl_chart — 1h / 24h / 7d trend with downsampling, gap detection, outlier clamping |
 
-### Sprint 2 Goal
+### BLE GATT Table
 
-Refine StillCold into a reliable, tested system that behaves well in realistic cold environments and has a companion app aligned with the SRS, while cautiously exploring hardware consolidation. See **[Sprint 2 Plan](docs/project_context/sprint_2_plan.md)** for objectives, scope (Must/Should/Stretch), and week-by-week schedule.
-
-### Sprint 2 Features (Refinement and Extension)
-
-- **Improved reliability and stability**  
-  The system improves consistency in sensor readings and BLE data exposure.
-
-- **Expanded environmental context**  
-  Humidity data may be incorporated more explicitly to provide additional context for temperature readings.
-
-- **Mobile application integration**  
-  The Flutter application communicates with the StillCold prototype via BLE and displays live temperature data to the end user.
-
-- **Refined system behavior**  
-  The system may improve update strategies, data representation, or internal structure based on Sprint 1 outcomes.
-
-### Sprint 2 Functional Requirements
-
-- The system shall improve robustness of temperature data collection and transmission.
-- The system shall support refinements to BLE data representation without breaking existing behavior.
-- The system shall enable BLE communication with a mobile device running the Flutter application.
-- The system shall incorporate lessons learned from Sprint 1 into updated system behavior.
-
-### Sprint 2 Non-Functional Requirements
-
-- The system should maintain a clear separation of responsibilities between sensing and communication.
-- The system should support incremental improvement without requiring architectural redesign.
-- The system should remain aligned with its original problem scope.
-
-## 5. Data Model and Architecture
-
-StillCold uses a simple data model and a modular system architecture designed to support clarity, reliability, and incremental development.
+| Element | Value |
+|---------|-------|
+| Advertised name | `StillCold` |
+| Service UUID | `12345678-1234-1234-1234-1234567890ab` |
+| Temperature characteristic UUID | `abcd1234-5678-1234-5678-abcdef123456` |
+| Humidity characteristic UUID | `abcd5678-1234-5678-1234-abcdef654321` |
+| Data format | ASCII string, 2 decimal places (e.g. `"23.54"`) |
+| Access | Read-only (polled by app) |
 
 ### Data Model
 
-At a high level, the system works with a small set of environmental data values:
+The system works with a small, well-defined set of values:
 
-- **Temperature**  
-  The primary measurement produced by the system and exposed to external devices.
+- **Temperature** — primary measurement; exposed via BLE and stored in SQLite.
+- **Humidity** — secondary measurement; exposed via BLE, stored, and visualized alongside temperature.
 
-- **Humidity**  
-  A secondary measurement used to provide additional environmental context and support future refinement.
+The app maintains a rolling 30-day history. Only the most recent reading is held in memory by the firmware; no historical data is stored on the device.
 
-Each data value is represented in a simple, human-readable form suitable for inspection during development and testing. The system maintains only the most recent sensor readings and does not persist historical data.
+---
 
-This minimal data model is intentional, allowing the project to focus on correctness and end-to-end data flow rather than storage or analysis.
+## 6. Sprint Progress Summary
 
-### System Architecture
+| Week | Theme | Key Outcome |
+|------|-------|-------------|
+| **4** | Hardware setup | HTU21D ↔ Nano ↔ ESP32-C6 pipeline verified |
+| **5** | Data acquisition | Reliable sensor reads and UART transfer |
+| **6** | BLE | GATT service and characteristics implemented |
+| **7** | End-to-end + app MVP | Full pipeline validated; Flutter MVP delivered |
+| **10** | Stabilise and plan | Architecture docs, SRS gap analysis, Sprint 2 backlog |
+| **11** | Cold-environment testing | 3 scenarios validated; BLE stable through fridge door |
+| **12** | Flutter Must + Should | 7 features shipped; DB migrations; all core SRS done |
+| **13** | Single-MCU migration | Nano + level shifter removed; unified ESP32-C6 firmware |
+| **14** | Trend charts | 1h/24h/7d charts, downsampling, retention; all SRS tiers complete |
 
-The system is organized around two logical components with clearly defined responsibilities:
+---
 
-- **Sensing Component**  
-  Responsible for interfacing with the environmental sensor and collecting temperature (and humidity) readings at a regular interval.
-
-- **Communication Component**  
-  Responsible for exposing the most recent sensor readings through a Bluetooth Low Energy (BLE) interface.
-
-Sensor data flows from the sensing component to the communication component, where it is made available via a BLE service and characteristic. A nearby device can read this data without requiring direct access to the monitored environment.
-
-This separation of responsibilities keeps the system modular and easier to reason about, while allowing individual components to be refined independently as the project evolves.
-
-## 6. Links to Code, Documentation, and Presentations
-
-All artifacts related to StillCold are organized across dedicated repositories and course resources.
+## 7. Links to Code, Documentation, and Presentations
 
 ### Source Code
 
-**Project Repository:**  
-[[StillCold](https://github.com/jeffreyperdue/stillcold-csc-494-iot-project)]  
-The primary repository containing source code, configuration files, and project-specific documentation for StillCold.
-
-### Learning with AI
-
-**Learning with AI Repository:**  
-[[Learning With AI](https://github.com/jeffreyperdue/csc-494-learning-with-ai)]  
-A separate repository containing documentation, notes, and reflections related to AI-assisted learning activities, including exploration of sensor behavior and BLE data design.
-
-### Documentation
-
-Project documentation, including the project outline and README files, is maintained within the project repository. Key documents include:
-
-- **[Sprint 2 Plan](docs/project_context/sprint_2_plan.md)** — Current state, Sprint 2 goal, scope, and week-by-week plan.
-- **[Flutter app SRS](docs/project_context/flutter_app_srs.md)** — Software requirements for the companion app.
-- **[SRS status (Week 7)](docs/project_context/SRS_status_week7.md)** — Implementation status of the Flutter app relative to the SRS.
-
-Additional documentation may be introduced as the project evolves.
+- **[StillCold GitHub Repository](https://github.com/jeffreyperdue/stillcold-csc-494-iot-project)** — firmware, Flutter app source, architecture docs, cold-test reports, and all presentations.
+- **[Learning with AI Repository](https://github.com/jeffreyperdue/csc-494-learning-with-ai)** — notes and reflections on AI-assisted learning throughout the project.
+- **[Canvas Project Page](https://nku.instructure.com/courses/88152/pages/individual-project-jeffrey-perdue)**
 
 ### Presentations
 
-- **Project Preparation Presentation (PPP)** — Course platforms as finalized.
-- **Sprint 1 Presentation (s1p)** — [docs/presentations/s1p/s1p.md](docs/presentations/s1p/s1p.md) — Summary of Sprint 1 progress (weeks 4–7).
+| Presentation | Link |
+|--------------|------|
+| Project Preparation Presentation (PPP) | [docs/presentations/ppp/project_preparation_presentation.md](docs/presentations/ppp/project_preparation_presentation.md) |
+| Sprint 1 Presentation (S1P) | [docs/presentations/s1p/s1p.md](docs/presentations/s1p/s1p.md) |
+| Week 10 Progress | [docs/presentations/weekly_presentations/week_10/week10_progress_presentation.md](docs/presentations/weekly_presentations/week_10/week10_progress_presentation.md) |
+| Week 11 Progress | [docs/presentations/weekly_presentations/week_11/week11_progress_presentation.md](docs/presentations/weekly_presentations/week_11/week11_progress_presentation.md) |
+| Week 12 Progress | [docs/presentations/weekly_presentations/week_12/week12_progress_presentation.md](docs/presentations/weekly_presentations/week_12/week12_progress_presentation.md) |
+| Week 13 Progress | [docs/presentations/weekly_presentations/week_13/week13_progress_presentation.md](docs/presentations/weekly_presentations/week_13/week13_progress_presentation.md) |
+| Week 14 Progress | [docs/presentations/weekly_presentations/week_14/week14_progress_presentation.md](docs/presentations/weekly_presentations/week_14/week14_progress_presentation.md) |
+| **Final Presentation** | [docs/presentations/final_marp_presentation/final_presentation.md](docs/presentations/final_marp_presentation/final_presentation.md) |
+| **Demo Video** | [YouTube Short](https://www.youtube.com/shorts/DTpED5YB1A8) |
+
+### Key Documentation
+
+- **[Single-MCU Architecture](docs/project_context/architecture_docs/architecture_sprint2_single_mcu.md)** — Final hardware design, wiring table, BLE GATT table, I²C configuration, and firmware sketch reference.
+- **[Flutter App SRS](docs/project_context/flutter_app_docs/flutter_app_srs.md)** — Full software requirements specification for the companion app.
+- **[Sprint 2 Plan](docs/project_context/flutter_app_docs/sprint_2_plan.md)** — Sprint 2 objectives, scope (Must/Should/Stretch), and week-by-week schedule.
+- **[Sprint 2 Backlog](docs/project_context/flutter_app_docs/sprint2_backlog.md)** — Detailed backlog items and completion status.
+- **[Cold-Environment Test Report](docs/project_context/cold_environment_testing/cold_env_test_report.md)** — Week 11 test scenarios, results, and key findings.
+- **[SRS Gap Analysis (Sprint 2 Start)](docs/project_context/flutter_app_docs/srs_gap_analysis_beginning_of_sprint_2.md)** — Baseline gap analysis that drove the Sprint 2 backlog.
