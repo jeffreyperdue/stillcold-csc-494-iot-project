@@ -65,13 +65,11 @@ HTU21D ──I²C──▶ ESP32-C6 ──BLE──▶ Flutter App ──▶ Use
 
 ---
 
-<!-- Demo video slide -->
-<!-- Embed your video clip here. Replace the src path with the actual location of your clip. -->
-<!-- Marp must be run with --html enabled (or allowLocalFiles in VS Code settings) for <video> to render. -->
+# Demo Video
 
-<video controls style="max-height:75vh; max-width:100%; display:block; margin:auto;">
-  <source src="video/stillcold_demo.mp4" type="video/mp4">
-</video>
+<p style="text-align:center; font-size:22px;">
+<a href="https://www.youtube.com/shorts/DTpED5YB1A8">Link to Demo Video</a>
+</p>
 
 ---
 
@@ -153,11 +151,7 @@ Key firmware changes:
 
 **Stretch FR-3.6 implemented:** 1h / 24h / 7d trend charts with temperature / humidity toggle.
 
-| Range | Bucket size | ~Points |
-|-------|-------------|---------|
-| 1 h | 1 min | 60 |
-| 24 h | 5 min | 288 |
-| 7 d | 1 hour | 168 |
+
 
 - 30-day retention policy; schema **v4** composite index `(deviceId, timestamp)`
 - Gap visualisation via `nan` breaks in fl_chart
@@ -227,9 +221,9 @@ StillCold will be presented as a live demonstration at the **NKU Celebration of 
 
 ---
 
-<!-- Poster slide — insert your poster PDF/image below -->
-<!-- Recommended: export the first page of your poster PDF as a PNG, then use: -->
-<!-- ![StillCold Research Poster](images/stillcold_poster.png) -->
+# StillCold Research Poster
+
+![StillCold Research Poster h:480](../../project_context/StillCold_Poster_2.0-1.png)
 
 ---
 

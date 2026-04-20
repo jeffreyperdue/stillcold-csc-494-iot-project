@@ -144,7 +144,7 @@ fl_chart, BLE GATT.
 
 - (v) I created a high-quality Marp presentation PDF with video clips for my final presentation.
 - (v) The presentation PDF is uploaded to GitHub and accessible to anyone.
-- The link to my Marp presentation PDF: ?
+- The link to my Marp presentation PDF: https://github.com/jeffreyperdue/stillcold-csc-494-iot-project/blob/main/docs/presentations/final_marp_presentation/final_presentation.pdf
 
 **Grading Scale:**
 - 90-100%: I am confident that my Marp presentation is professional, clearly communicates my project with video clips, and is publicly accessible on GitHub.
@@ -195,7 +195,7 @@ Provide a brief summary of your weekly progress:
 - (V) I interpreted the topic in my own words (not just copy-pasting from AI).
 - (V) I created a high-quality Marp PDF slide for this topic.
 - (V) The slide is publicly accessible (anyone can download it).
-- The link to my Topic 1 Marp PDF slide: ?
+- The link to my Topic 1 Marp PDF slide: https://github.com/jeffreyperdue/stillcold-csc-494-iot-project/blob/main/docs/presentations/final_marp_presentation/final_presentation.pdf
 
 What I learned and my interpretation:
 The main thing I learned is that outputs from a sensor are interpretations, not just measurements. This showed up multiple times throughout the semester when working on this project. A sensor reading in isolation isn't an inherent truth, but rather a sample that's shaped by a number of variables.
@@ -220,7 +220,7 @@ Another thing I learned is the chain involved with each reading. The HTU21D samp
 - (V) I interpreted the topic in my own words (not just copy-pasting from AI).
 - (V) I created a high-quality Marp PDF slide for this topic.
 - (V) The slide is publicly accessible (anyone can download it).
-- The link to my Topic 2 Marp PDF slide: ?
+- The link to my Topic 2 Marp PDF slide: https://github.com/jeffreyperdue/stillcold-csc-494-iot-project/blob/main/docs/presentations/final_marp_presentation/final_presentation.pdf
 
 What I learned and my interpretation:
 Coming from a more pure Software Engineering background, I had to shift the way I thought about applications. In this case, the Flutter application isn't standalone, but rather it is a layer in a physical system. As a product of that, understanding that and keeping that front of mind was essential in designing the holistic StillCold project. 
